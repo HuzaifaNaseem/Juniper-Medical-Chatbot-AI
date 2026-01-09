@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juniper - Medical Research Assistant</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-animation">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <!-- App Layout -->
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <svg class="brand-icon" width="32" height="32" viewBox="0 0 40 40">
+                        <circle cx="20" cy="20" r="18" fill="url(#brandGrad)" opacity="0.2"/>
+                        <path d="M20 8L24 16H28L22 22L24 30L20 26L16 30L18 22L12 16H16L20 8Z" fill="url(#brandGrad)"/>
+                        <defs>
+                            <linearGradient id="brandGrad" x1="0" y1="0" x2="40" y2="40">
+                                <stop offset="0%" stop-color="#667eea"/>
+                                <stop offset="100%" stop-color="#764ba2"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <div>
+                        <h1 class="brand-name">Juniper</h1>
+                        <p class="brand-subtitle">Medical AI</p>
+                    </div>
+                </div>
+                <button class="sidebar-close" id="sidebarClose">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="sidebar-body">
+                <div class="info-box">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                        <path d="M2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                    </svg>
+                    <div>
+                        <strong>RAG-Powered</strong>
+                        <p>40+ Medical Topics</p>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button class="action-btn primary" id="newChat">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        New Chat
+                    </button>
+                    <button class="action-btn" id="clearHistory">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                        Clear History
+                    </button>
+                    <button class="action-btn" id="themeToggle">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                        </svg>
+                        Theme
+                    </button>
+                </div>
+
+                <div class="chat-history">
+                    <h3>Chat History</h3>
+                    <div class="history-list" id="historyList">
+                        <div class="empty-history">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                            <p>No conversations yet</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="features">
+                    <h3>Features</h3>
+                    <div class="feature">
+                        <svg width="16" height="16"><circle cx="8" cy="8" r="3" fill="currentColor"/></svg>
+                        Real-time Insights
+                    </div>
+                    <div class="feature">
+                        <svg width="16" height="16"><circle cx="8" cy="8" r="3" fill="currentColor"/></svg>
+                        Evidence-Based
+                    </div>
+                    <div class="feature">
+                        <svg width="16" height="16"><circle cx="8" cy="8" r="3" fill="currentColor"/></svg>
+                        Source Attribution
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="status">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">Ready</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Top Bar -->
+            <div class="topbar">
+                <button class="menu-btn" id="menuBtn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+                <h2 class="page-title">Medical Research Assistant</h2>
+                <div class="model-tag">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 1v6m0 6v6"></path>
+                    </svg>
+                    Llama 3.3
+                </div>
+            </div>
+
+            <!-- Notice -->
+            <div class="notice">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                Educational purposes only. Consult healthcare professionals for medical advice.
+            </div>
+
+            <!-- Chat Area -->
+            <div class="chat-area" id="chatArea">
+                <!-- Welcome Screen -->
+                <div class="welcome" id="welcomeScreen">
+                    <svg class="welcome-icon" width="64" height="64" viewBox="0 0 40 40">
+                        <circle cx="20" cy="20" r="18" fill="url(#welGrad)" opacity="0.2"/>
+                        <path d="M20 8L24 16H28L22 22L24 30L20 26L16 30L18 22L12 16H16L20 8Z" fill="url(#welGrad)"/>
+                        <defs>
+                            <linearGradient id="welGrad" x1="0" y1="0" x2="40" y2="40">
+                                <stop offset="0%" stop-color="#667eea"/>
+                                <stop offset="100%" stop-color="#764ba2"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <h2>Welcome to Juniper</h2>
+                    <p>Your intelligent medical research companion</p>
+
+                    <div class="query-grid">
+                        <button class="query-card" data-query="What are the symptoms of Type 2 diabetes?">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                            </svg>
+                            <div>
+                                <strong>Diabetes</strong>
+                                <span>Symptoms of Type 2 diabetes</span>
+                            </div>
+                        </button>
+
+                        <button class="query-card" data-query="How do antibiotics work?">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                            </svg>
+                            <div>
+                                <strong>Antibiotics</strong>
+                                <span>Mechanisms of action</span>
+                            </div>
+                        </button>
+
+                        <button class="query-card" data-query="What is cardiovascular disease?">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                            <div>
+                                <strong>Heart Health</strong>
+                                <span>Cardiovascular disease info</span>
+                            </div>
+                        </button>
+
+                        <button class="query-card" data-query="How does the immune system work?">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                            </svg>
+                            <div>
+                                <strong>Immunity</strong>
+                                <span>Immune system overview</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="caps">
+                        <div><svg width="16" height="16"><circle cx="8" cy="8" r="2" fill="currentColor"/></svg> Instant responses</div>
+                        <div><svg width="16" height="16"><circle cx="8" cy="8" r="2" fill="currentColor"/></svg> 40+ topics</div>
+                        <div><svg width="16" height="16"><circle cx="8" cy="8" r="2" fill="currentColor"/></svg> RAG tech</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Box -->
+            <div class="input-box">
+                <form id="chatForm">
+                    <div class="input-container">
+                        <textarea id="messageInput" placeholder="Ask about medical topics..." rows="1" maxlength="2000"></textarea>
+                        <button type="submit" id="sendBtn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="input-meta">
+                        <span class="char-count"><span id="charCount">0</span>/2000</span>
+                        <span class="hint">Enter to send • Shift+Enter for new line</span>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
