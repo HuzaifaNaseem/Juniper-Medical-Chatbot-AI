@@ -36,19 +36,20 @@ class RAGEngine:
 
         logger.info("RAG Engine initialized")
 
-    def query(self, user_query: str, conversation_id: Optional[str] = None) -> Dict[str, Any]:
+    def query(self, user_query: str, conversation_id: Optional[str] = None, language: str = 'en') -> Dict[str, Any]:
         """
         Process a user query using RAG pipeline
 
         Args:
             user_query: User's question
             conversation_id: Optional conversation ID for context
+            language: Language for response ('en' for English, 'ur' for Roman Urdu)
 
         Returns:
             Dictionary containing response and metadata
         """
         try:
-            logger.info(f"Processing query: '{user_query[:100]}...'")
+            logger.info(f"Processing query (lang: {language}): '{user_query[:100]}...'")
 
             # Step 1: Retrieve relevant documents
             retrieved_docs = self.vector_store.search(user_query, top_k=self.top_k)
@@ -56,7 +57,7 @@ class RAGEngine:
             if not retrieved_docs:
                 logger.warning("No relevant documents found")
                 return {
-                    'response': self._generate_fallback_response(user_query),
+                    'response': self._generate_fallback_response(user_query, language),
                     'sources': [],
                     'conversation_id': conversation_id
                 }
@@ -71,7 +72,8 @@ class RAGEngine:
             response = self.llm_service.generate_rag_response(
                 query=user_query,
                 context=context,
-                conversation_history=conversation_history
+                conversation_history=conversation_history,
+                language=language
             )
 
             # Step 5: Update conversation history
@@ -96,8 +98,9 @@ class RAGEngine:
 
         except Exception as e:
             logger.error(f"Error processing query: {e}")
+            error_msg = "I apologize, but I encountered an error processing your request. Please try again." if language == 'en' else "Maafi, mujhe aapke sawal ka jawab dene mein masla ho raha hai. Mehrbani karke dobara koshish karein."
             return {
-                'response': "I apologize, but I encountered an error processing your request. Please try again.",
+                'response': error_msg,
                 'sources': [],
                 'conversation_id': conversation_id,
                 'error': str(e)
@@ -179,17 +182,32 @@ class RAGEngine:
 
         return sources
 
-    def _generate_fallback_response(self, query: str) -> str:
+    def _generate_fallback_response(self, query: str, language: str = 'en') -> str:
         """
         Generate fallback response when no documents are retrieved
 
         Args:
             query: User query
+            language: Language for response
 
         Returns:
             Fallback response
         """
-        return """I apologize, but I couldn't find specific information in my medical knowledge base to answer your question.
+        if language == 'ur':
+            return """Maafi chahta hoon, lekin mujhe apne medical knowledge base mein aapke sawal ka koi khaas jawab nahi mila.
+
+Ye is wajah se ho sakta hai:
+1. Ye topic bohat specialized hai ya mere current knowledge ke bahar hai
+2. Sawal ko doosre tareeqe se poochna behtar hoga
+
+Meri taraf se mashwara:
+- Apne sawal ko medical terms ke sath dobara likhein
+- Mushkil sawalo ko chhote chhote hisson mein taqseem karein
+- Kisi doctor ya healthcare professional se mashwara zaroor lein
+
+Kya main aapki kisi aur medical topic mein madad kar sakta hoon?"""
+        else:
+            return """I apologize, but I couldn't find specific information in my medical knowledge base to answer your question.
 
 This could be because:
 1. The topic is very specialized or outside my current knowledge scope

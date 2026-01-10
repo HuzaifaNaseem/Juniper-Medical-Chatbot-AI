@@ -13,6 +13,7 @@ from config import get_config, Config
 from backend.vector_store import VectorStore
 from backend.llm_service import LLMService
 from backend.rag_engine import RAGEngine
+from backend.user_auth import UserAuth
 
 # Configure logging
 logging.basicConfig(
@@ -29,8 +30,9 @@ app.config.from_object(config_class)
 # Enable CORS
 CORS(app, resources={r"/api/*": {"origins": config_class.CORS_ORIGINS}})
 
-# Global RAG engine instance
+# Global RAG engine and auth instances
 rag_engine = None
+user_auth = None
 
 
 def initialize_rag_engine():
@@ -146,6 +148,7 @@ def chat():
 
         user_message = data['message'].strip()
         conversation_id = data.get('conversation_id')
+        language = data.get('language', 'en')  # Get language, default to English
 
         # Validate message
         if not user_message:
@@ -158,12 +161,13 @@ def chat():
                 'error': f'Message too long. Maximum {Config.MAX_MESSAGE_LENGTH} characters'
             }), 400
 
-        logger.info(f"Processing chat request: '{user_message[:100]}...'")
+        logger.info(f"Processing chat request (lang: {language}): '{user_message[:100]}...'")
 
-        # Process query through RAG engine
+        # Process query through RAG engine with language parameter
         result = rag_engine.query(
             user_query=user_message,
-            conversation_id=conversation_id
+            conversation_id=conversation_id,
+            language=language
         )
 
         # Build response
@@ -234,6 +238,109 @@ def get_stats():
 
 
 # ==========================================
+# AUTHENTICATION ROUTES
+# ==========================================
+
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    """Register a new user"""
+    try:
+        data = request.get_json()
+
+        email = data.get('email', '').strip()
+        username = data.get('username', '').strip()
+        password = data.get('password', '')
+
+        result = user_auth.register_user(email, username, password)
+
+        if result['success']:
+            return jsonify(result), 201
+        else:
+            return jsonify(result), 400
+
+    except Exception as e:
+        logger.error(f"Registration error: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Registration failed'
+        }), 500
+
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    """Login user"""
+    try:
+        data = request.get_json()
+
+        email = data.get('email', '').strip()
+        password = data.get('password', '')
+
+        result = user_auth.login_user(email, password)
+
+        if result['success']:
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 401
+
+    except Exception as e:
+        logger.error(f"Login error: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Login failed'
+        }), 500
+
+
+@app.route('/api/auth/logout', methods=['POST'])
+def logout():
+    """Logout user"""
+    try:
+        data = request.get_json()
+        session_token = data.get('session_token', '')
+
+        user_auth.logout_user(session_token)
+
+        return jsonify({
+            'success': True,
+            'message': 'Logged out successfully'
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Logout error: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Logout failed'
+        }), 500
+
+
+@app.route('/api/auth/validate', methods=['POST'])
+def validate_session():
+    """Validate session token"""
+    try:
+        data = request.get_json()
+        session_token = data.get('session_token', '')
+
+        user = user_auth.validate_session(session_token)
+
+        if user:
+            return jsonify({
+                'success': True,
+                'user': user
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Invalid or expired session'
+            }), 401
+
+    except Exception as e:
+        logger.error(f"Session validation error: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Validation failed'
+        }), 500
+
+
+# ==========================================
 # ERROR HANDLERS
 # ==========================================
 
@@ -260,12 +367,22 @@ def internal_error(error):
 
 def startup():
     """Application startup tasks"""
+    global user_auth
+
     print("\n" + "=" * 60)
     print("JUNIPER - Medical Research Assistant")
     print("=" * 60)
     print(f"\nEnvironment: {Config.FLASK_ENV}")
     print(f"Debug Mode: {Config.DEBUG}")
     print(f"Model: {Config.LLM_MODEL}")
+
+    # Initialize user authentication
+    try:
+        user_auth = UserAuth()
+        print("✓ User authentication initialized")
+    except Exception as e:
+        logger.error(f"Failed to initialize user authentication: {e}")
+        print("⚠ User authentication initialization failed (continuing without auth)")
 
     # Initialize RAG engine
     if not initialize_rag_engine():

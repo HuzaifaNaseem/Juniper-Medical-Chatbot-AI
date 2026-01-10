@@ -7,6 +7,7 @@ class JuniperChat {
         this.chatForm = document.getElementById('chatForm');
         this.messageInput = document.getElementById('messageInput');
         this.sendBtn = document.getElementById('sendBtn');
+        this.voiceBtn = document.getElementById('voiceBtn');
         this.charCount = document.getElementById('charCount');
         this.statusDot = document.getElementById('statusDot');
         this.statusText = document.getElementById('statusText');
@@ -22,6 +23,12 @@ class JuniperChat {
         this.conversations = this.loadConversations();
         this.currentMessages = [];
         this.historyList = document.getElementById('historyList');
+
+        // Voice recognition state
+        this.isRecording = false;
+        this.recognition = null;
+        this.selectedLanguage = 'en'; // Default to English
+        this.initVoiceRecognition();
 
         this.init();
     }
@@ -80,6 +87,19 @@ class JuniperChat {
         document.getElementById('newChat')?.addEventListener('click', () => this.newChat());
         document.getElementById('clearHistory')?.addEventListener('click', () => this.clearHistory());
         document.getElementById('themeToggle')?.addEventListener('click', () => this.toggleTheme());
+
+        // Voice button
+        if (this.voiceBtn) {
+            this.voiceBtn.addEventListener('click', () => this.toggleVoiceRecording());
+        }
+
+        // Language selector buttons
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const lang = e.target.getAttribute('data-lang');
+                this.switchLanguage(lang);
+            });
+        });
     }
 
     setupAutoResize() {
@@ -96,71 +116,6 @@ class JuniperChat {
     updateCharCount() {
         const count = this.messageInput.value.length;
         this.charCount.textContent = count;
-    }
-
-    async handleSend() {
-        const message = this.messageInput.value.trim();
-
-        if (!message || this.isProcessing) return;
-
-        if (message.length > 2000) {
-            alert('Message too long (max 2000 characters)');
-            return;
-        }
-
-        // Hide welcome
-        if (this.welcomeScreen) {
-            this.welcomeScreen.classList.add('hidden');
-        }
-
-        // Add user message
-        this.addMessage('user', message);
-
-        // Clear input
-        this.messageInput.value = '';
-        this.messageInput.style.height = 'auto';
-        this.updateCharCount();
-
-        // Show typing
-        this.showTyping();
-
-        // Update status
-        this.setStatus('processing', 'Processing...');
-        this.isProcessing = true;
-        this.sendBtn.disabled = true;
-
-        try {
-            const response = await this.sendToAPI(message);
-            this.removeTyping();
-            this.addMessage('assistant', response.response, response.sources);
-        } catch (error) {
-            console.error('Error:', error);
-            this.removeTyping();
-            this.addMessage('assistant', 'Sorry, I encountered an error. Please try again.', [], true);
-            this.setStatus('error', 'Error');
-        } finally {
-            this.isProcessing = false;
-            this.sendBtn.disabled = false;
-            this.setStatus('ready', 'Ready');
-        }
-    }
-
-    async sendToAPI(message) {
-        const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                message: message,
-                conversation_id: this.conversationId
-            })
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Failed to get response');
-        }
-
-        return await response.json();
     }
 
     addMessage(sender, text, sources = [], isError = false) {
@@ -320,6 +275,10 @@ class JuniperChat {
         }
 
         localStorage.setItem('juniper-conversations', JSON.stringify(this.conversations));
+
+        // Also save to user-specific storage if logged in
+        this.saveToUserStorage();
+
         this.renderHistory();
     }
 
@@ -419,6 +378,10 @@ class JuniperChat {
 
         this.conversations = this.conversations.filter(c => c.id !== convId);
         localStorage.setItem('juniper-conversations', JSON.stringify(this.conversations));
+
+        // Also update user-specific storage if logged in
+        this.saveToUserStorage();
+
         this.renderHistory();
 
         if (convId === this.conversationId) {
@@ -470,6 +433,229 @@ class JuniperChat {
 
     generateId() {
         return 'conv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    saveToUserStorage() {
+        // Save current conversations to user-specific storage if user is logged in
+        if (window.authManager && window.authManager.getCurrentUser()) {
+            const user = window.authManager.getCurrentUser();
+            if (user && user.id) {
+                const userKey = `juniper-conversations-user-${user.id}`;
+                const currentConversations = localStorage.getItem('juniper-conversations');
+                if (currentConversations) {
+                    localStorage.setItem(userKey, currentConversations);
+                }
+            }
+        }
+    }
+
+    initVoiceRecognition() {
+        // Check if browser supports Web Speech API
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (!SpeechRecognition) {
+            console.warn('Speech recognition not supported in this browser');
+            if (this.voiceBtn) {
+                this.voiceBtn.style.display = 'none';
+            }
+            return;
+        }
+
+        this.recognition = new SpeechRecognition();
+        this.recognition.continuous = false;
+        this.recognition.interimResults = true;
+        this.recognition.lang = 'en-US'; // Will be updated based on selected language
+        this.recognition.maxAlternatives = 1;
+
+        this.recognition.onstart = () => {
+            this.isRecording = true;
+            this.voiceBtn.classList.add('recording');
+            this.setStatus('processing', 'Listening...');
+            this.messageInput.placeholder = 'Listening... Speak now';
+        };
+
+        this.recognition.onresult = (event) => {
+            let interimTranscript = '';
+            let finalTranscript = '';
+
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalTranscript += transcript + ' ';
+                } else {
+                    interimTranscript += transcript;
+                }
+            }
+
+            // Update textarea with interim results
+            if (interimTranscript) {
+                this.messageInput.value = finalTranscript + interimTranscript;
+                this.updateCharCount();
+                this.autoResize();
+            }
+
+            // If final result, update textarea
+            if (finalTranscript) {
+                this.messageInput.value = finalTranscript.trim();
+                this.updateCharCount();
+                this.autoResize();
+            }
+        };
+
+        this.recognition.onerror = (event) => {
+            console.error('Speech recognition error:', event.error);
+            this.isRecording = false;
+            this.voiceBtn.classList.remove('recording');
+            this.setStatus('ready', 'Ready');
+            this.messageInput.placeholder = 'Ask about medical topics...';
+
+            if (event.error === 'no-speech') {
+                this.setStatus('error', 'No speech detected');
+                setTimeout(() => this.setStatus('ready', 'Ready'), 2000);
+            } else if (event.error === 'not-allowed') {
+                alert('Microphone access denied. Please enable microphone permissions in your browser settings.');
+            } else {
+                this.setStatus('error', 'Error: ' + event.error);
+                setTimeout(() => this.setStatus('ready', 'Ready'), 2000);
+            }
+        };
+
+        this.recognition.onend = () => {
+            this.isRecording = false;
+            this.voiceBtn.classList.remove('recording');
+            this.setStatus('ready', 'Ready');
+            this.updatePlaceholder();
+
+            // Auto-send if there's text
+            const message = this.messageInput.value.trim();
+            if (message && message.length > 0) {
+                // Small delay before sending to show the final transcript
+                setTimeout(() => {
+                    this.handleSend();
+                }, 500);
+            }
+        };
+    }
+
+    toggleVoiceRecording() {
+        if (!this.recognition) {
+            alert('Voice input is not supported in your browser. Please use Chrome, Edge, or Safari.');
+            return;
+        }
+
+        if (this.isProcessing) {
+            return;
+        }
+
+        if (this.isRecording) {
+            // Stop recording
+            this.recognition.stop();
+        } else {
+            // Start recording
+            try {
+                this.messageInput.value = '';
+                this.updateCharCount();
+                // Update recognition language based on selected language
+                this.recognition.lang = this.selectedLanguage === 'ur' ? 'ur-PK' : 'en-US';
+                this.recognition.start();
+            } catch (error) {
+                console.error('Error starting recognition:', error);
+                alert('Failed to start voice recognition. Please try again.');
+            }
+        }
+    }
+
+    switchLanguage(lang) {
+        this.selectedLanguage = lang;
+
+        // Update active state on buttons
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`.lang-btn[data-lang="${lang}"]`).classList.add('active');
+
+        // Update placeholder text
+        this.updatePlaceholder();
+
+        // Save preference
+        localStorage.setItem('juniper-language', lang);
+    }
+
+    updatePlaceholder() {
+        if (this.selectedLanguage === 'ur') {
+            this.messageInput.placeholder = 'Tibbi mawzoo ke bare mein poochen...';
+        } else {
+            this.messageInput.placeholder = 'Ask about medical topics...';
+        }
+    }
+
+    async handleSend() {
+        const message = this.messageInput.value.trim();
+
+        if (!message || this.isProcessing) return;
+
+        if (message.length > 2000) {
+            alert('Message too long (max 2000 characters)');
+            return;
+        }
+
+        // Hide welcome
+        if (this.welcomeScreen) {
+            this.welcomeScreen.classList.add('hidden');
+        }
+
+        // Add user message
+        this.addMessage('user', message);
+
+        // Clear input
+        this.messageInput.value = '';
+        this.messageInput.style.height = 'auto';
+        this.updateCharCount();
+
+        // Show typing
+        this.showTyping();
+
+        // Update status
+        this.setStatus('processing', 'Processing...');
+        this.isProcessing = true;
+        this.sendBtn.disabled = true;
+
+        try {
+            const response = await this.sendToAPI(message, this.selectedLanguage);
+            this.removeTyping();
+            this.addMessage('assistant', response.response, response.sources);
+        } catch (error) {
+            console.error('Error:', error);
+            this.removeTyping();
+            const errorMsg = this.selectedLanguage === 'ur'
+                ? 'Maafi, mujhe aik masla hua hai. Mehrbani karke dobara koshish karein.'
+                : 'Sorry, I encountered an error. Please try again.';
+            this.addMessage('assistant', errorMsg, [], true);
+            this.setStatus('error', 'Error');
+        } finally {
+            this.isProcessing = false;
+            this.sendBtn.disabled = false;
+            this.setStatus('ready', 'Ready');
+        }
+    }
+
+    async sendToAPI(message, language) {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message: message,
+                conversation_id: this.conversationId,
+                language: language
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to get response');
+        }
+
+        return await response.json();
     }
 }
 

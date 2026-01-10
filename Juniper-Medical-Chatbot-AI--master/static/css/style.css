@@ -848,6 +848,92 @@ body {
     color: var(--text-tertiary);
 }
 
+.language-selector {
+    display: flex;
+    gap: 4px;
+    background: var(--surface-hover);
+    padding: 4px;
+    border-radius: var(--radius-md);
+    flex-shrink: 0;
+}
+
+.lang-btn {
+    padding: 6px 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: calc(var(--radius-md) - 2px);
+    transition: all var(--transition);
+    font-family: inherit;
+}
+
+.lang-btn:hover {
+    background: var(--bg);
+    color: var(--text-primary);
+}
+
+.lang-btn.active {
+    background: var(--primary);
+    color: white;
+}
+
+.voice-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    border: none;
+    background: var(--surface-hover);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition);
+    flex-shrink: 0;
+    position: relative;
+}
+
+.voice-btn:hover:not(:disabled) {
+    background: var(--primary-light);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.voice-btn .mic-icon {
+    display: block;
+}
+
+.voice-btn .mic-recording {
+    display: none;
+}
+
+.voice-btn.recording {
+    background: #ef4444;
+    color: white;
+    animation: pulse-recording 1.5s ease-in-out infinite;
+}
+
+.voice-btn.recording .mic-icon {
+    display: none;
+}
+
+.voice-btn.recording .mic-recording {
+    display: block;
+}
+
+@keyframes pulse-recording {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+    }
+}
+
 #sendBtn {
     width: 40px;
     height: 40px;
@@ -947,6 +1033,217 @@ body {
     .caps {
         gap: var(--space-md);
     }
+}
+
+/* ============================================
+   AUTHENTICATION MODAL
+   ============================================ */
+
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--transition);
+}
+
+.modal.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-content {
+    background: var(--surface);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    max-width: 420px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: var(--space-2xl);
+    position: relative;
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-close {
+    position: absolute;
+    top: var(--space-lg);
+    right: var(--space-lg);
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: var(--space-xs);
+    border-radius: var(--radius-sm);
+    transition: all var(--transition);
+}
+
+.modal-close:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+}
+
+.auth-form h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--space-xs);
+}
+
+.auth-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-bottom: var(--space-xl);
+}
+
+.form-group {
+    margin-bottom: var(--space-lg);
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--space-xs);
+}
+
+.form-group input {
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+    transition: all var(--transition);
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+.form-error {
+    color: #f56565;
+    font-size: 0.875rem;
+    margin-bottom: var(--space-md);
+    min-height: 1.2rem;
+}
+
+.auth-btn {
+    width: 100%;
+    padding: var(--space-md);
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+    margin-top: var(--space-sm);
+}
+
+.auth-btn.primary {
+    background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+    color: white;
+}
+
+.auth-btn.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.auth-btn:not(.primary) {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+}
+
+.auth-btn:not(.primary):hover {
+    background: var(--bg);
+}
+
+.auth-switch {
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-top: var(--space-lg);
+}
+
+.auth-switch button {
+    background: none;
+    border: none;
+    color: var(--primary);
+    cursor: pointer;
+    font-weight: 600;
+    padding: 0;
+    text-decoration: underline;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+    padding: var(--space-xl);
+    background: var(--bg);
+    border-radius: var(--radius-lg);
+    margin: var(--space-xl) 0;
+}
+
+.user-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
+}
+
+.user-details {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.user-details h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--space-xs);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-details p {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    word-break: break-all;
 }
 
 /* ============================================
