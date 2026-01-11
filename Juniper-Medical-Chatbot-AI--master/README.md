@@ -252,3 +252,13 @@ For issues, questions, or suggestions:
 - [ ] Voice input/output
 - [ ] Mobile app
 
+---
+
+## © Ownership & License
+
+This project **Juniper Medical AI** was designed, engineered, and implemented by **Huzaifa Naseem**.
+
+Unauthorized copying, resale, or rebranding of this project without permission is strictly prohibited.
+
+If you are viewing this project outside the original GitHub repository, it is an **unauthorized copy**.
+
