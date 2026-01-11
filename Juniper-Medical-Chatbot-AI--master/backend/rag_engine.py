@@ -243,3 +243,12 @@ How can I help you with another medical topic?"""
             'active_conversations': len(self.conversations),
             'top_k': self.top_k
         }
+
+"""
+Juniper Medical AI
+Author: Huzaifa Naseem
+Original GitHub Repository: https://github.com/HuzaifaNaseem/Juniper-Medical-Chatbot-AI
+This file is part of the original Juniper project.
+Unauthorized redistribution is prohibited.
+"""
+
