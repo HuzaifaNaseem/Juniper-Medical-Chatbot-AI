@@ -1,4 +1,13 @@
 """
+Juniper Medical AI
+Author: Huzaifa Naseem
+Original GitHub Repository: https://github.com/HuzaifaNaseem/Juniper-Medical-Chatbot-AI
+This file is part of the original Juniper project.
+Unauthorized redistribution is prohibited.
+"""
+
+
+"""
 Juniper - Medical Research Assistant
 Main Flask Application
 """
