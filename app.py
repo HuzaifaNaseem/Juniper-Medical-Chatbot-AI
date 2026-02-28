@@ -40,11 +40,17 @@ def initialize_rag_engine():
     global rag_engine
 
     try:
+        logger.info("=" * 50)
         logger.info("Initializing RAG engine...")
 
         # Validate configuration
+        groq_key = Config.GROQ_API_KEY
+        logger.info(f"GROQ_API_KEY present: {bool(groq_key)}, length: {len(groq_key) if groq_key else 0}")
+        logger.info(f"CHROMA_DB_PATH: {Config.CHROMA_DB_PATH}")
+        logger.info(f"CHROMA_DB_PATH exists: {os.path.exists(Config.CHROMA_DB_PATH)}")
+
         if not Config.validate():
-            logger.error("Configuration validation failed")
+            logger.error("Configuration validation failed - GROQ_API_KEY is missing")
             return False
 
         # Initialize vector store
@@ -56,9 +62,22 @@ def initialize_rag_engine():
         )
 
         # Check if vector store has documents
-        if vector_store.collection.count() == 0:
-            logger.error("Vector store is empty. Please run 'python initialize_kb.py' first")
-            return False
+        doc_count = vector_store.collection.count()
+        logger.info(f"Vector store document count: {doc_count}")
+        if doc_count == 0:
+            logger.error("Vector store is empty. Running initialize_kb.py...")
+            # Try to initialize the knowledge base on the fly
+            try:
+                from initialize_kb import main as init_kb
+                init_kb()
+                doc_count = vector_store.collection.count()
+                logger.info(f"After init, vector store document count: {doc_count}")
+                if doc_count == 0:
+                    logger.error("Vector store still empty after initialization")
+                    return False
+            except Exception as kb_err:
+                logger.error(f"Failed to initialize knowledge base: {kb_err}")
+                return False
 
         # Initialize LLM service
         logger.info("Initializing LLM service...")
@@ -70,6 +89,7 @@ def initialize_rag_engine():
         )
 
         # Test LLM connection
+        logger.info("Testing LLM connection...")
         if not llm_service.test_connection():
             logger.error("Failed to connect to Groq API. Please check your API key")
             return False
@@ -82,10 +102,13 @@ def initialize_rag_engine():
         )
 
         logger.info("✓ RAG engine initialized successfully")
+        logger.info("=" * 50)
         return True
 
     except Exception as e:
         logger.error(f"Error initializing RAG engine: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return False
 
 
