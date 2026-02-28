@@ -116,6 +116,27 @@ def initialize_rag_engine():
 # ROUTES
 # ==========================================
 
+@app.route('/api/debug', methods=['GET'])
+def debug_info():
+    """Temporary debug endpoint to diagnose init issues"""
+    import os
+    groq_key = os.getenv('GROQ_API_KEY', '')
+    chroma_path = Config.CHROMA_DB_PATH
+    return jsonify({
+        'groq_key_present': bool(groq_key),
+        'groq_key_length': len(groq_key),
+        'groq_key_first5': groq_key[:5] if groq_key else 'NONE',
+        'chroma_path': chroma_path,
+        'chroma_exists': os.path.exists(chroma_path),
+        'data_dir_exists': os.path.exists('./data'),
+        'data_contents': os.listdir('./data') if os.path.exists('./data') else [],
+        'cwd': os.getcwd(),
+        'rag_engine_ready': rag_engine is not None,
+        'env_file_exists': os.path.exists('.env'),
+        'flask_env': os.getenv('FLASK_ENV', 'not set'),
+    }), 200
+
+
 @app.route('/')
 def index():
     """Serve the main application page"""
