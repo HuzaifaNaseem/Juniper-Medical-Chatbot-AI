@@ -7,8 +7,8 @@ import sys
 
 # Initialize application on startup
 if not startup():
-    print("ERROR: Failed to initialize application")
-    sys.exit(1)
+    print("WARNING: Failed to fully initialize application. App will run in degraded mode.")
+    print("Chat functionality may not work until GROQ_API_KEY is configured.")
 
 # WSGI application
 application = app
