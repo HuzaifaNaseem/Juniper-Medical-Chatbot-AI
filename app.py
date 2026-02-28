@@ -132,11 +132,13 @@ def chat():
     Expects JSON: {"message": "user query", "conversation_id": "optional_id"}
     """
     try:
-        # Validate RAG engine
+        # Validate RAG engine - try lazy initialization if not ready
         if rag_engine is None:
-            return jsonify({
-                'error': 'System not initialized. Please contact administrator.'
-            }), 503
+            logger.info("RAG engine not initialized, attempting lazy initialization...")
+            if not initialize_rag_engine():
+                return jsonify({
+                    'error': 'System not initialized. Please contact administrator.'
+                }), 503
 
         # Get request data
         data = request.get_json()
