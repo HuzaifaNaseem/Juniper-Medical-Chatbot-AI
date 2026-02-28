@@ -13,7 +13,6 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 
 # Install Python dependencies
-# Adding gunicorn for production serving
 RUN pip install --no-cache-dir -r requirements.txt gunicorn gevent
 
 # Copy the rest of the application code
@@ -35,13 +34,8 @@ EXPOSE 7860
 RUN mkdir -p /app/data /app/chroma_db && \
     chmod -R 777 /app/data /app/chroma_db
 
-# Create a startup script to initialize KB safely and run the app
-RUN echo '#!/bin/bash\n\
-echo "Initializing Knowledge Base..."\n\
-python initialize_kb.py\n\
-echo "Starting Application on port 7860..."\n\
-gunicorn wsgi:application --bind 0.0.0.0:7860 --workers 2 --worker-class gevent --timeout 120 --log-level info\n\
-' > /app/start.sh && chmod +x /app/start.sh
+# Copy the startup script and make it executable
+RUN chmod +x /app/start_hf.sh
 
 # Run the startup script
-CMD ["/app/start.sh"]
+CMD ["bash", "/app/start_hf.sh"]
