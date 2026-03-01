@@ -88,11 +88,10 @@ def initialize_rag_engine():
             max_tokens=Config.LLM_MAX_TOKENS
         )
 
-        # Test LLM connection
+        # Test LLM connection — warn only, don't abort startup on transient failures
         logger.info("Testing LLM connection...")
         if not llm_service.test_connection():
-            logger.error("Failed to connect to Groq API. Please check your API key")
-            return False
+            logger.warning("LLM connection test failed — will retry on first request")
 
         # Initialize RAG engine
         rag_engine = RAGEngine(
