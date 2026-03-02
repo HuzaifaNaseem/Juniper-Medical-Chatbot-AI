@@ -13,6 +13,9 @@ ENV HF_HOME=/app/.cache
 ENV SENTENCE_TRANSFORMERS_HOME=/app/.cache/sentence_transformers
 ENV TRANSFORMERS_CACHE=/app/.cache/transformers
 
+# Cache bust — change this value to force a full rebuild from this layer onwards.
+RUN echo "cache-bust-2026-03-02-v1"
+
 # Pre-download the sentence-transformers model into /app/.cache so all users can read it.
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2'); print('Model pre-downloaded OK')"
 
