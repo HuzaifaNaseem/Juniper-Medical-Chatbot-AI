@@ -121,10 +121,31 @@ def debug_info():
     import os
     groq_key = os.getenv('GROQ_API_KEY', '')
     chroma_path = Config.CHROMA_DB_PATH
+
+    # Try a live Groq API test and capture any error
+    groq_test_result = 'not_tested'
+    groq_error = None
+    if groq_key:
+        try:
+            from groq import Groq
+            client = Groq(api_key=groq_key)
+            client.chat.completions.create(
+                model=Config.LLM_MODEL,
+                messages=[{"role": "user", "content": "hi"}],
+                max_tokens=5
+            )
+            groq_test_result = 'success'
+        except Exception as e:
+            groq_test_result = 'failed'
+            groq_error = str(e)
+
     return jsonify({
         'groq_key_present': bool(groq_key),
         'groq_key_length': len(groq_key),
         'groq_key_first5': groq_key[:5] if groq_key else 'NONE',
+        'groq_api_test': groq_test_result,
+        'groq_error': groq_error,
+        'llm_model': Config.LLM_MODEL,
         'chroma_path': chroma_path,
         'chroma_exists': os.path.exists(chroma_path),
         'data_dir_exists': os.path.exists('./data'),
