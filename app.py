@@ -33,11 +33,12 @@ CORS(app, resources={r"/api/*": {"origins": config_class.CORS_ORIGINS}})
 # Global RAG engine and auth instances
 rag_engine = None
 user_auth = None
+last_init_error = None
 
 
 def initialize_rag_engine():
     """Initialize RAG engine with vector store and LLM service"""
-    global rag_engine
+    global rag_engine, last_init_error
 
     try:
         logger.info("=" * 50)
@@ -105,9 +106,11 @@ def initialize_rag_engine():
         return True
 
     except Exception as e:
-        logger.error(f"Error initializing RAG engine: {e}")
         import traceback
-        logger.error(traceback.format_exc())
+        tb = traceback.format_exc()
+        logger.error(f"Error initializing RAG engine: {e}")
+        logger.error(tb)
+        last_init_error = f"{type(e).__name__}: {e}\n{tb}"
         return False
 
 
@@ -139,6 +142,20 @@ def debug_info():
             groq_test_result = 'failed'
             groq_error = str(e)
 
+    # Try to get chroma doc count directly
+    chroma_doc_count = -1
+    chroma_error = None
+    try:
+        from backend.vector_store import VectorStore
+        vs = VectorStore(
+            db_path=Config.CHROMA_DB_PATH,
+            collection_name=Config.COLLECTION_NAME,
+            embedding_model_name=Config.EMBEDDING_MODEL
+        )
+        chroma_doc_count = vs.collection.count()
+    except Exception as ce:
+        chroma_error = str(ce)
+
     return jsonify({
         'groq_key_present': bool(groq_key),
         'groq_key_length': len(groq_key),
@@ -148,12 +165,17 @@ def debug_info():
         'llm_model': Config.LLM_MODEL,
         'chroma_path': chroma_path,
         'chroma_exists': os.path.exists(chroma_path),
+        'chroma_doc_count': chroma_doc_count,
+        'chroma_error': chroma_error,
         'data_dir_exists': os.path.exists('./data'),
         'data_contents': os.listdir('./data') if os.path.exists('./data') else [],
         'cwd': os.getcwd(),
         'rag_engine_ready': rag_engine is not None,
+        'last_init_error': last_init_error,
         'env_file_exists': os.path.exists('.env'),
         'flask_env': os.getenv('FLASK_ENV', 'not set'),
+        'cache_dir_exists': os.path.exists('/app/.cache'),
+        'hf_home': os.getenv('HF_HOME', 'not set'),
     }), 200
 
 
