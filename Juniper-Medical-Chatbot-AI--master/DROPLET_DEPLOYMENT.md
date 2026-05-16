@@ -2,7 +2,7 @@
 
 Your Droplet Details:
 - **Name**: Juniper-Medical-Chatbot
-- **IP**: 139.59.41.114
+- **IP**: YOUR_DROPLET_IP
 - **OS**: Ubuntu 24.04 LTS
 
 ## Method 1: Automated Deployment (Easiest)
@@ -12,7 +12,7 @@ Your Droplet Details:
 Open your terminal (PowerShell/CMD on Windows) and connect:
 
 ```bash
-ssh root@139.59.41.114
+ssh root@YOUR_DROPLET_IP
 ```
 
 You'll be prompted for your password (the one DigitalOcean emailed you).
@@ -50,7 +50,7 @@ If you prefer to do it manually, follow these steps:
 ### Step 1: SSH into Droplet
 
 ```bash
-ssh root@139.59.41.114
+ssh root@YOUR_DROPLET_IP
 ```
 
 ### Step 2: Update System
@@ -188,11 +188,11 @@ Type `y` when prompted.
 
 Once deployed, access your app at:
 
-**http://139.59.41.114:8080**
+**http://YOUR_DROPLET_IP:8080**
 
 Test the health endpoint:
 
-**http://139.59.41.114:8080/api/health**
+**http://YOUR_DROPLET_IP:8080/api/health**
 
 ---
 
@@ -239,7 +239,7 @@ Add:
 ```nginx
 server {
     listen 80;
-    server_name 139.59.41.114;
+    server_name YOUR_DROPLET_IP;
 
     location / {
         proxy_pass http://127.0.0.1:8080;
@@ -267,7 +267,7 @@ systemctl restart nginx
 ufw allow 'Nginx Full'
 ```
 
-Now access your app at: **http://139.59.41.114** (without port 8080)
+Now access your app at: **http://YOUR_DROPLET_IP** (without port 8080)
 
 ---
 
