@@ -32,9 +32,9 @@ read REPO_URL
 
 if [ -d ".git" ]; then
     echo "Repository already exists, pulling latest changes..."
-    sudo git pull origin master
+    sudo git pull origin hf-deploy-fixes
 else
-    sudo git clone "$REPO_URL" .
+    sudo git clone -b hf-deploy-fixes "$REPO_URL" .
 fi
 
 # Navigate to correct directory if nested
@@ -92,7 +92,7 @@ VENV_DIR="$APP_DIR/venv"
 sudo tee /etc/supervisor/conf.d/juniper.conf > /dev/null <<EOF
 [program:juniper]
 directory=$APP_DIR
-command=$VENV_DIR/bin/gunicorn wsgi:application --bind 0.0.0.0:8080 --workers 4 --worker-class gevent --timeout 120 --log-level info
+command=$VENV_DIR/bin/gunicorn wsgi:application --bind 0.0.0.0:8080 --workers 2 --timeout 120 --log-level info
 user=$USER
 autostart=true
 autorestart=true
