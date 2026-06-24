@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: juniper-medical-bot
+    env: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt && python initialize_kb.py"
+    startCommand: "gunicorn wsgi:application --workers 1 --timeout 300"
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: GROQ_API_KEY
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: "*"
