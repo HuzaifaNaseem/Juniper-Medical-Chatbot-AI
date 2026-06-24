@@ -6,6 +6,8 @@ services:
     buildCommand: "pip install -r requirements.txt && python initialize_kb.py"
     startCommand: "gunicorn wsgi:application --workers 1 --timeout 300"
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
       - key: FLASK_ENV
         value: production
       - key: GROQ_API_KEY
