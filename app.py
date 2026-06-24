@@ -266,6 +266,14 @@ def chat():
             'timestamp': datetime.utcnow().isoformat()
         }
 
+        # Surface safety interceptions for the client and server logs (audit trail)
+        if result.get('safety_flag'):
+            response_data['safety_flag'] = result['safety_flag']
+            logger.warning(
+                f"SAFETY AUDIT: query intercepted (flag={result['safety_flag']}, "
+                f"conversation_id={conversation_id})"
+            )
+
         logger.info("Chat request processed successfully")
         return jsonify(response_data), 200
 

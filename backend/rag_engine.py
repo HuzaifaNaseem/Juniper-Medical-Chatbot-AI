@@ -7,6 +7,8 @@ from typing import List, Dict, Optional, Any
 import logging
 from .vector_store import VectorStore
 from .llm_service import LLMService
+from . import safety
+from .references import reference_for
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -50,6 +52,20 @@ class RAGEngine:
         """
         try:
             logger.info(f"Processing query (lang: {language}): '{user_query[:100]}...'")
+
+            # Step 0: Safety guardrail — intercept emergencies / self-harm BEFORE
+            # the LLM is ever involved, returning safe hard-coded guidance instead.
+            safety_result = safety.screen_message(user_query, language)
+            if safety_result is not None:
+                logger.warning(
+                    f"Query intercepted by safety guardrail: {safety_result['safety_flag']}"
+                )
+                return {
+                    'response': safety_result['response'],
+                    'sources': [],
+                    'conversation_id': conversation_id,
+                    'safety_flag': safety_result['safety_flag'],
+                }
 
             # Step 1: Retrieve relevant documents
             retrieved_docs = self.vector_store.search(user_query, top_k=self.top_k)
@@ -171,13 +187,28 @@ class RAGEngine:
             List of formatted source dictionaries
         """
         sources = []
+        seen_titles = set()
 
         for doc in retrieved_docs:
             metadata = doc.get('metadata', {})
+            title = metadata.get('title', 'Unknown')
+
+            # De-duplicate by title so the same topic isn't cited twice.
+            if title in seen_titles:
+                continue
+            seen_titles.add(title)
+
+            category = metadata.get('category', 'general')
+            reference = reference_for(category)
+
             sources.append({
-                'title': metadata.get('title', 'Unknown'),
-                'category': metadata.get('category', 'general'),
-                'similarity': round(doc.get('similarity', 0), 3)
+                'title': title,
+                'category': category,
+                'similarity': round(doc.get('similarity', 0), 3),
+                # Whole-number relevance percentage for clean display.
+                'relevance': max(0, min(100, round(doc.get('similarity', 0) * 100))),
+                'reference_name': reference['name'],
+                'reference_url': reference['url'],
             })
 
         return sources

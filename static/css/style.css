@@ -747,11 +747,23 @@ body {
     border: none;
 }
 
+.message-sources-wrap {
+    margin-top: var(--space-md);
+}
+
+.sources-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+    opacity: 0.8;
+    margin-bottom: var(--space-xs);
+}
+
 .message-sources {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-xs);
-    margin-top: var(--space-sm);
 }
 
 .source-badge {
@@ -764,6 +776,30 @@ body {
     border-radius: var(--radius-sm);
     font-size: 0.75rem;
     color: var(--text-secondary);
+    text-decoration: none;
+    transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+a.source-badge:hover {
+    border-color: var(--primary, #6366f1);
+    color: var(--primary, #6366f1);
+}
+
+.source-title {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.source-relevance {
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: var(--primary, #6366f1);
+    color: #fff;
+    opacity: 0.85;
 }
 
 /* Typing Indicator */

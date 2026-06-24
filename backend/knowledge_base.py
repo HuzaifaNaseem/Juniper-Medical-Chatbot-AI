@@ -1246,6 +1246,303 @@ toxicity).
 Risk Reduction: Use lowest effective dose for shortest duration, take with food, consider proton pump inhibitor for GI protection
 in high-risk patients, monitor renal function and blood pressure, avoid in patients with cardiovascular risk if possible.
 """
+    },
+
+    # ==========================================
+    # WOMEN'S HEALTH
+    # ==========================================
+    {
+        "title": "Polycystic Ovary Syndrome (PCOS)",
+        "category": "women_health",
+        "content": """
+Polycystic Ovary Syndrome (PCOS) is a common hormonal disorder affecting people of reproductive age, characterised by irregular
+periods, excess androgen (male hormone) levels, and/or polycystic ovaries seen on ultrasound.
+
+Symptoms: Irregular or missed periods, excess facial and body hair (hirsutism), acne, scalp hair thinning, weight gain,
+difficulty losing weight, and difficulty getting pregnant. Many people with PCOS also have insulin resistance.
+
+Causes and Associations: The exact cause is unknown but involves a combination of genetic and environmental factors. PCOS is
+strongly linked with insulin resistance, type 2 diabetes, obesity, and metabolic syndrome.
+
+Diagnosis: Based on the Rotterdam criteria — two of the following three: irregular ovulation, signs of high androgens (clinical
+or blood tests), and polycystic ovaries on ultrasound. Other conditions must be excluded.
+
+Management: Lifestyle changes (healthy diet, regular exercise, weight management) are first-line and can restore ovulation.
+Medications may include hormonal contraceptives to regulate periods, metformin for insulin resistance, and fertility treatments
+such as letrozole for those trying to conceive. Regular screening for diabetes and cardiovascular risk is important.
+"""
+    },
+    {
+        "title": "Pregnancy Warning Signs",
+        "category": "women_health",
+        "content": """
+While most pregnancies are healthy, certain symptoms require prompt medical evaluation. Recognising warning signs helps protect
+both the pregnant person and the baby.
+
+Seek urgent care for: Heavy vaginal bleeding, severe abdominal or shoulder pain, severe or persistent headache, blurred vision
+or seeing spots, sudden swelling of the face, hands, or feet, a significant decrease in the baby's movements, fever, painful
+urination, or fluid leaking from the vagina before term.
+
+Pre-eclampsia: A serious condition involving high blood pressure and signs of organ damage (often protein in the urine) after
+20 weeks of pregnancy. Symptoms include severe headache, vision changes, upper abdominal pain, and sudden swelling. It requires
+immediate medical attention as it can progress to life-threatening complications.
+
+Routine Care: Regular prenatal visits monitor blood pressure, growth, and overall health. A balanced diet, prenatal vitamins
+with folic acid, avoiding alcohol and tobacco, and staying active as advised support a healthy pregnancy.
+
+This information is educational. Anyone who is pregnant and concerned about symptoms should contact their midwife, obstetrician,
+or local maternity unit without delay.
+"""
+    },
+
+    # ==========================================
+    # PEDIATRICS / CHILD HEALTH
+    # ==========================================
+    {
+        "title": "Childhood Fever",
+        "category": "pediatrics",
+        "content": """
+Fever is a common and usually harmless sign that a child's body is fighting an infection. A fever is generally defined as a
+body temperature of 38°C (100.4°F) or higher. The height of the fever does not always reflect how serious the illness is.
+
+Comfort and Care: Keep the child hydrated with regular fluids, dress them in light clothing, and let them rest. Paracetamol
+(acetaminophen) or ibuprofen can be used for discomfort according to weight-based dosing — never exceed recommended doses, and
+do not give aspirin to children due to the risk of Reye's syndrome.
+
+When to seek urgent care: A baby under 3 months with any fever; a child who is very drowsy, difficult to wake, or unusually
+floppy; a stiff neck, a rash that does not fade when pressed, difficulty breathing, a seizure, signs of dehydration (no wet
+nappies, no tears, sunken eyes), or a fever lasting more than five days.
+
+Febrile Seizures: Some young children have brief seizures triggered by fever. Although frightening, most are harmless and brief.
+Keep the child safe from injury, place them on their side, and seek medical advice — call emergency services if a seizure lasts
+more than five minutes.
+
+This is general information; parents who are worried about an unwell child should always seek professional medical advice.
+"""
+    },
+    {
+        "title": "Childhood Vaccinations",
+        "category": "pediatrics",
+        "content": """
+Vaccinations are one of the most effective ways to protect children from serious infectious diseases. They work by training the
+immune system to recognise and fight specific germs without causing the disease itself.
+
+Common Childhood Vaccines: These protect against diseases such as measles, mumps, rubella (MMR), diphtheria, tetanus, pertussis
+(whooping cough), polio, Haemophilus influenzae type b (Hib), hepatitis B, pneumococcal disease, rotavirus, and meningococcal
+disease. Schedules vary by country.
+
+Safety: Vaccines are extensively tested and monitored. Common side effects are mild and short-lived — a sore arm, mild fever, or
+irritability. Serious reactions are very rare. The benefits of preventing dangerous diseases far outweigh these minor effects.
+
+Herd Immunity: When enough people in a community are vaccinated, the spread of disease is reduced, protecting those who cannot be
+vaccinated, such as newborns and people with weakened immune systems.
+
+Catch-Up: Children who have missed vaccines can usually catch up. Parents should consult their healthcare provider or local
+immunisation schedule for the right timing.
+"""
+    },
+
+    # ==========================================
+    # FIRST AID
+    # ==========================================
+    {
+        "title": "Choking First Aid",
+        "category": "first_aid",
+        "content": """
+Choking occurs when an object blocks the airway, preventing normal breathing. It is an emergency that requires immediate action.
+
+Signs: The person may clutch their throat, be unable to speak, cough, or breathe, make high-pitched sounds, or turn blue.
+A person who can cough forcefully should be encouraged to keep coughing.
+
+For a conscious adult or child (over 1 year) who cannot breathe: Give up to five sharp back blows between the shoulder blades
+with the heel of your hand. If unsuccessful, give up to five abdominal thrusts (stand behind them, place a fist above the navel,
+grasp it with your other hand, and pull sharply inward and upward). Alternate five back blows and five abdominal thrusts until
+the object is cleared or the person becomes unconscious.
+
+If the person becomes unconscious: Call emergency services immediately and begin CPR if you are trained.
+
+For babies under 1 year: Use five back blows followed by five chest thrusts (never abdominal thrusts) and seek emergency help.
+
+Always call your local emergency number if choking is severe or the person loses consciousness. This is educational information,
+not a substitute for hands-on first aid training.
+"""
+    },
+    {
+        "title": "Burns First Aid",
+        "category": "first_aid",
+        "content": """
+Burns are injuries to the skin and tissues caused by heat, chemicals, electricity, or radiation. Quick, correct first aid can
+reduce damage and pain.
+
+Immediate Steps: Stop the burning process and move the person to safety. Cool the burn under cool (not ice-cold) running water
+for at least 20 minutes. Remove jewellery or clothing near the burn unless it is stuck to the skin. Cover the burn loosely with
+cling film or a clean, non-fluffy cloth.
+
+Do Not: Apply ice, butter, toothpaste, or creams; burst blisters; or remove anything stuck to the burn.
+
+When to seek urgent medical care: Burns that are large (bigger than the person's hand), deep, or involve the face, hands, feet,
+genitals, or a joint; chemical or electrical burns; burns on a baby or older adult; or any burn that looks white, charred, or
+leathery. Signs of infection (increasing pain, redness, swelling, or pus) also need attention.
+
+Pain relief such as paracetamol or ibuprofen can help. Severe burns are a medical emergency — call your local emergency number.
+"""
+    },
+
+    # ==========================================
+    # MUSCULOSKELETAL
+    # ==========================================
+    {
+        "title": "Osteoarthritis",
+        "category": "musculoskeletal",
+        "content": """
+Osteoarthritis is the most common form of arthritis, caused by the gradual breakdown of cartilage — the smooth tissue that
+cushions the ends of bones in a joint. It commonly affects the knees, hips, hands, and spine.
+
+Symptoms: Joint pain that worsens with activity and eases with rest, stiffness (especially in the morning or after inactivity),
+reduced flexibility, a grating sensation, and sometimes bony swelling. Symptoms usually develop slowly over years.
+
+Risk Factors: Age, previous joint injury, obesity (extra load on weight-bearing joints), repetitive joint stress, family
+history, and being female.
+
+Management: There is no cure, but symptoms can be managed effectively. Regular low-impact exercise (such as swimming or cycling),
+weight management, physiotherapy, and assistive devices help maintain function. Pain relief options include paracetamol, topical
+or oral NSAIDs, and sometimes steroid injections. In severe cases, joint replacement surgery can greatly improve quality of life.
+
+Self-Care: Staying active, strengthening the muscles around affected joints, applying heat or cold, and pacing activities can
+all reduce pain and protect joint function.
+"""
+    },
+    {
+        "title": "Low Back Pain",
+        "category": "musculoskeletal",
+        "content": """
+Low back pain is one of the most common health complaints worldwide. Most cases are non-specific, meaning no single serious cause
+is found, and they improve within a few weeks.
+
+Common Causes: Muscle or ligament strain, poor posture, heavy or awkward lifting, prolonged sitting, and age-related changes in
+the spine. A slipped (herniated) disc can press on a nerve and cause pain radiating down the leg (sciatica).
+
+Self-Care: Staying active is important — prolonged bed rest can slow recovery. Gentle movement, stretching, good posture, and
+over-the-counter pain relief such as NSAIDs usually help. Applying heat may ease muscle tension.
+
+Red Flags — seek prompt medical care if back pain is accompanied by: loss of bladder or bowel control, numbness around the groin
+or inner thighs, progressive leg weakness, unexplained weight loss, fever, or a history of cancer. These can signal a serious
+condition needing urgent assessment.
+
+Prevention: Regular exercise to strengthen core and back muscles, safe lifting techniques, maintaining a healthy weight, and an
+ergonomic workspace all reduce the risk of recurrence.
+"""
+    },
+
+    # ==========================================
+    # ADDITIONAL COMMON CONDITIONS
+    # ==========================================
+    {
+        "title": "Urinary Tract Infection (UTI)",
+        "category": "infectious",
+        "content": """
+A Urinary Tract Infection (UTI) is an infection in any part of the urinary system — most commonly the bladder (cystitis) and
+urethra. UTIs are particularly common in women.
+
+Symptoms: A strong, persistent urge to urinate, a burning sensation when urinating, passing frequent small amounts of urine,
+cloudy or strong-smelling urine, and pelvic discomfort. Blood in the urine can also occur.
+
+Causes: Most UTIs are caused by bacteria, commonly E. coli, entering the urinary tract. Risk factors include sexual activity,
+certain types of contraception, menopause, urinary catheters, and conditions that block urine flow.
+
+Treatment: Bacterial UTIs are usually treated with a short course of antibiotics. Drinking plenty of fluids and over-the-counter
+pain relief can ease symptoms. Completing the full antibiotic course is important.
+
+When to seek urgent care: Signs that the infection has reached the kidneys — fever, chills, back or flank pain, nausea, and
+vomiting — require prompt medical attention. UTIs in pregnancy, in men, or that keep recurring should also be assessed by a
+healthcare professional.
+"""
+    },
+    {
+        "title": "Iron-Deficiency Anemia",
+        "category": "hematology",
+        "content": """
+Iron-deficiency anaemia occurs when the body lacks enough iron to produce haemoglobin, the protein in red blood cells that
+carries oxygen. It is the most common type of anaemia worldwide.
+
+Symptoms: Tiredness and weakness, pale skin, shortness of breath, dizziness, cold hands and feet, brittle nails, headaches, and
+sometimes unusual cravings for non-food items such as ice (pica). Mild cases may have no symptoms.
+
+Causes: Blood loss (including heavy menstrual periods and gastrointestinal bleeding), inadequate dietary iron, poor absorption
+(as in coeliac disease), and increased needs during pregnancy and growth.
+
+Diagnosis and Treatment: Blood tests measure haemoglobin and iron stores (ferritin). Treatment includes iron-rich foods (red
+meat, beans, lentils, leafy greens, fortified cereals) and iron supplements. Vitamin C aids absorption. Importantly, the
+underlying cause of the iron loss must be identified and addressed.
+
+When to seek care: Persistent fatigue, signs of bleeding (such as black stools), or anaemia in men and postmenopausal women
+should always be investigated to rule out a serious underlying cause.
+"""
+    },
+    {
+        "title": "Anxiety Disorders",
+        "category": "mental_health",
+        "content": """
+Anxiety disorders are among the most common mental health conditions, involving excessive worry or fear that is persistent and
+interferes with daily life. They are highly treatable.
+
+Types: Generalised anxiety disorder (ongoing, excessive worry about many things), panic disorder (recurrent panic attacks),
+social anxiety disorder (intense fear of social situations), and specific phobias.
+
+Symptoms: Persistent worry, restlessness, difficulty concentrating, irritability, muscle tension, and sleep problems. Physical
+symptoms can include a racing heart, sweating, trembling, shortness of breath, and stomach upset. Panic attacks are sudden
+episodes of intense fear with strong physical sensations.
+
+Management: Effective treatments include psychological therapies such as cognitive behavioural therapy (CBT), which helps change
+unhelpful thought and behaviour patterns. Medications such as SSRIs may be prescribed. Lifestyle measures — regular exercise,
+good sleep, reduced caffeine and alcohol, and relaxation techniques — also help.
+
+Seeking Help: Anxiety that interferes with work, relationships, or daily activities deserves support. Anyone experiencing
+thoughts of self-harm should seek help immediately from a crisis service or emergency care. A doctor or mental health
+professional can guide treatment.
+"""
+    },
+    {
+        "title": "Healthy Diet and Nutrition Basics",
+        "category": "nutrition",
+        "content": """
+A balanced diet provides the energy and nutrients the body needs to function well and reduces the risk of chronic diseases such
+as heart disease, type 2 diabetes, and some cancers.
+
+Core Principles: Eat plenty of fruits and vegetables (aim for a variety of colours), choose whole grains over refined ones,
+include lean protein sources (beans, fish, poultry, nuts), and opt for healthy fats (olive oil, nuts, avocado) over saturated
+and trans fats. Limit added sugar, salt, and ultra-processed foods.
+
+Hydration: Water is the best choice for staying hydrated. Sugary drinks add calories with little nutritional value.
+
+Portion and Balance: Rather than strict dieting, focus on consistent, balanced eating and appropriate portions. The plate model
+— roughly half vegetables and fruit, a quarter whole grains, and a quarter protein — is a simple guide.
+
+Special Considerations: Nutritional needs vary with age, activity level, pregnancy, and medical conditions. Anyone with specific
+dietary concerns, allergies, or chronic illness should seek advice from a doctor or registered dietitian.
+"""
+    },
+    {
+        "title": "Sleep and Insomnia",
+        "category": "mental_health",
+        "content": """
+Sleep is essential for physical and mental health, supporting memory, mood, immune function, and recovery. Most adults need
+around 7-9 hours of quality sleep per night.
+
+Insomnia: Difficulty falling asleep, staying asleep, or waking too early despite the opportunity to sleep, leading to daytime
+tiredness, poor concentration, and low mood. It can be short-term (often linked to stress) or long-term.
+
+Causes: Stress and anxiety, irregular schedules, caffeine or alcohol, screen use at night, an uncomfortable sleep environment,
+certain medications, and underlying health conditions.
+
+Sleep Hygiene: Keep a consistent sleep and wake time, create a dark, quiet, cool bedroom, avoid caffeine and large meals late in
+the day, limit screens before bed, and use the bed mainly for sleep. Regular daytime exercise helps, as does a relaxing
+wind-down routine.
+
+When to seek help: Insomnia that persists for weeks, loud snoring with pauses in breathing (possible sleep apnoea), or sleep
+problems affecting daily functioning should be discussed with a healthcare professional. Cognitive behavioural therapy for
+insomnia (CBT-I) is a highly effective treatment.
+"""
     }
 ]
 

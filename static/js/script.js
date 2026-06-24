@@ -157,25 +157,53 @@ class JuniperChat {
         contentDiv.appendChild(headerDiv);
         contentDiv.appendChild(textDiv);
 
-        // Add sources
+        // Add sources / citations
         if (sources && sources.length > 0) {
+            const sourcesWrap = document.createElement('div');
+            sourcesWrap.className = 'message-sources-wrap';
+
+            const label = document.createElement('div');
+            label.className = 'sources-label';
+            label.textContent = 'Based on these knowledge base entries (verify with trusted sources):';
+            sourcesWrap.appendChild(label);
+
             const sourcesDiv = document.createElement('div');
             sourcesDiv.className = 'message-sources';
 
-            sources.forEach((source, index) => {
-                const badge = document.createElement('span');
+            sources.forEach((source) => {
+                const title = source.title || 'Reference';
+                const relevance = (typeof source.relevance === 'number') ? source.relevance : null;
+                const refName = source.reference_name || '';
+                const refUrl = source.reference_url || '';
+
+                // Each citation is a clickable badge linking to an authoritative
+                // source for that topic area, opening in a new tab.
+                const badge = document.createElement(refUrl ? 'a' : 'span');
                 badge.className = 'source-badge';
+                if (refUrl) {
+                    badge.href = refUrl;
+                    badge.target = '_blank';
+                    badge.rel = 'noopener noreferrer';
+                    badge.title = refName ? `Learn more at ${refName}` : 'Learn more';
+                }
+
+                const relevanceHtml = relevance !== null
+                    ? `<span class="source-relevance">${relevance}%</span>`
+                    : '';
+
                 badge.innerHTML = `
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                         <polyline points="14 2 14 8 20 8"></polyline>
                     </svg>
-                    Source ${index + 1}
+                    <span class="source-title">${this.escapeHtml(title)}</span>
+                    ${relevanceHtml}
                 `;
                 sourcesDiv.appendChild(badge);
             });
 
-            contentDiv.appendChild(sourcesDiv);
+            sourcesWrap.appendChild(sourcesDiv);
+            contentDiv.appendChild(sourcesWrap);
         }
 
         messageDiv.appendChild(avatarDiv);
@@ -429,6 +457,12 @@ class JuniperChat {
     getTime() {
         const now = new Date();
         return now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str == null ? '' : String(str);
+        return div.innerHTML;
     }
 
     generateId() {
