@@ -14,7 +14,7 @@ class Config:
     """Base configuration class"""
 
     # Flask Configuration
-    SECRET_KEY = os.getenv('SECRET_KEY', 'juniper-medical-assistant-secret-key-change-in-production')
+    SECRET_KEY = os.getenv('SECRET_KEY', '')
     FLASK_ENV = os.getenv('FLASK_ENV', 'production')
     DEBUG = FLASK_ENV == 'development'
 
