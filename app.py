@@ -3,9 +3,10 @@ Juniper - Medical Research Assistant
 Main Flask Application
 """
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, Response, stream_with_context
 from flask_cors import CORS
 from datetime import datetime
+import json
 import logging
 import os
 
@@ -282,6 +283,59 @@ def chat():
         return jsonify({
             'error': 'An error occurred processing your request. Please try again.'
         }), 500
+
+
+@app.route('/api/chat/stream', methods=['POST'])
+def chat_stream():
+    """
+    Streaming chat endpoint using Server-Sent Events (SSE).
+    Streams the answer token-by-token, then sends sources and follow-up
+    suggestions. Expects JSON: {"message", "conversation_id", "language"}.
+    """
+    # Validate / lazy-init outside the generator so we can return proper HTTP errors.
+    if rag_engine is None:
+        logger.info("RAG engine not initialized, attempting lazy initialization...")
+        if not initialize_rag_engine():
+            return jsonify({'error': 'System not initialized. Please contact administrator.'}), 503
+
+    data = request.get_json(silent=True)
+    if not data or 'message' not in data:
+        return jsonify({'error': 'Missing required field: message'}), 400
+
+    user_message = data['message'].strip()
+    conversation_id = data.get('conversation_id')
+    language = data.get('language', 'en')
+
+    if not user_message:
+        return jsonify({'error': 'Message cannot be empty'}), 400
+    if len(user_message) > Config.MAX_MESSAGE_LENGTH:
+        return jsonify({'error': f'Message too long. Maximum {Config.MAX_MESSAGE_LENGTH} characters'}), 400
+
+    logger.info(f"Streaming chat request (lang: {language}): '{user_message[:100]}...'")
+
+    def event_stream():
+        try:
+            for event in rag_engine.query_stream(
+                user_query=user_message,
+                conversation_id=conversation_id,
+                language=language,
+            ):
+                if event.get('type') == 'meta' and event.get('safety_flag'):
+                    logger.warning(
+                        f"SAFETY AUDIT: stream intercepted (flag={event['safety_flag']}, "
+                        f"conversation_id={conversation_id})"
+                    )
+                yield f"data: {json.dumps(event)}\n\n"
+        except Exception as e:
+            logger.error(f"Error in stream generator: {e}")
+            yield f"data: {json.dumps({'type': 'error', 'error': 'stream_failed'})}\n\n"
+
+    headers = {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no',  # disable proxy buffering (nginx)
+    }
+    return Response(stream_with_context(event_stream()), headers=headers)
 
 
 @app.route('/api/clear', methods=['POST'])

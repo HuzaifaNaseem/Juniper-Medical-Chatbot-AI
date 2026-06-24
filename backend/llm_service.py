@@ -70,21 +70,10 @@ class LLMService:
             logger.error(f"Error generating response: {e}")
             raise
 
-    def generate_rag_response(self, query: str, context: str,
+    def _build_rag_messages(self, query: str, context: str,
                             conversation_history: Optional[List[Dict[str, str]]] = None,
-                            language: str = 'en') -> str:
-        """
-        Generate a response using RAG context
-
-        Args:
-            query: User query
-            context: Retrieved context from vector store
-            conversation_history: Previous conversation turns
-            language: Language for response ('en' for English, 'ur' for Roman Urdu)
-
-        Returns:
-            Generated response
-        """
+                            language: str = 'en') -> List[Dict[str, str]]:
+        """Build the message list for a RAG completion (shared by stream + non-stream)."""
         # Build system message with instructions based on language
         if language == 'ur':
             system_message = """You are Juniper, an AI-powered medical research assistant who speaks ONLY in Roman Urdu.
@@ -103,40 +92,34 @@ IMPORTANT GUIDELINES:
 5. Always remind users to consult healthcare professionals (doctor se mashwara zaroor lein)
 6. Be empathetic and supportive in your responses
 
-FORMATTING RULES:
-- Write in Roman Urdu using Latin alphabet (a-z)
-- Use a natural, conversational tone in Roman Urdu
-- Use simple paragraphs separated by blank lines
-- DO NOT use markdown headers (##, ===, ---)
-- DO NOT use bold (**text**) or italic formatting
-- DO NOT reference sources explicitly like [Source 1] or [Source 5] in the response
+FORMATTING (use clean, light Markdown — it will be rendered):
+- Write the WORDS in Roman Urdu, but you MAY use Markdown structure
+- Use short **bold** for key terms (e.g., **Diabetes**)
+- Use bullet points (-) for lists of symptoms, causes, or tips
+- Use a short bold mini-heading like **Alamaat:** or **Ilaaj:** where helpful
+- End with a brief reminder line: "Doctor se mashwara zaroor karein."
+- DO NOT reference sources explicitly like [Source 1] in the text
+- Keep it concise and easy to read — avoid long dense paragraphs
 
-EXAMPLES of Roman Urdu responses:
-- "Diabetes ya sugar ki bimari aik aisi bemari hai jis mein khoon mein sugar ki miqdar bohat zyada barh jati hai."
-- "Ye bemari do qisam ki hoti hai - Type 1 aur Type 2. Type 1 diabetes mein jism insulin nahi bana pata."
-- "Is ki wajah se aap ko ye alamat ho sakti hain: zyada pyas lagna, bar bar peshab ana, aur kamzori mehsoos hona."
-- "Behtar hoga ke aap kisi doctor se salah karein aur apna check-up zaroor karwayen."
-
-Remember: Write your COMPLETE response in Roman Urdu. Every word, every sentence must be in Roman Urdu, NOT English."""
+Remember: Write your COMPLETE response in Roman Urdu. Every word must be in Roman Urdu, NOT English."""
         else:
             system_message = """You are Juniper, an AI-powered medical research assistant. Your role is to provide accurate, helpful, and clear medical information based on the knowledge provided to you.
 
 IMPORTANT GUIDELINES:
 1. Base your answers primarily on the provided CONTEXT
-2. Provide clear, concise, and professional responses without excessive formatting
-3. Use medical terminology appropriately but explain complex terms
-4. If the context doesn't fully answer the question, provide what information is available and acknowledge limitations
-5. Always remind users to consult healthcare professionals for medical advice
-6. Be empathetic and supportive in your responses
+2. Be accurate, clear, and professional; explain medical terms in plain language
+3. If the context doesn't fully answer the question, share what is available and acknowledge the limitation
+4. Be empathetic and supportive
+5. When relevant, include a brief "When to see a doctor" note for warning signs
 
-FORMATTING RULES:
-- Write in a natural, conversational tone
-- Use simple paragraphs separated by blank lines
-- DO NOT use markdown headers (##, ===, ---)
-- DO NOT use bold (**text**) or italic formatting
-- DO NOT reference sources explicitly like [Source 1] or [Source 5] in the response
-- DO NOT create artificial sections with headers
-- Present information in a flowing, readable manner
+FORMATTING (use clean, well-structured Markdown — it will be rendered for the user):
+- Start with a 1-2 sentence plain-language summary
+- Use short bold mini-headings (e.g., **Symptoms**, **Causes**, **Treatment**, **When to see a doctor**) where they help
+- Use bullet points (-) for lists of symptoms, causes, or steps
+- **Bold** important terms and warning signs
+- Keep paragraphs short and scannable — avoid long walls of text
+- Do NOT use giant headers (#), and do NOT add inline source citations like [Source 1]
+- End with a short, non-alarming reminder to consult a healthcare professional
 
 Remember: You are a research and educational tool, not a substitute for professional medical advice."""
 
@@ -148,7 +131,7 @@ Remember: You are a research and educational tool, not a substitute for professi
 USER QUESTION (in Roman Urdu):
 {query}
 
-IMPORTANT: You MUST respond in ROMAN URDU ONLY. Do NOT write in English. Write your complete answer in Roman Urdu (Urdu language using English alphabet). Start your response immediately in Roman Urdu without any English words. Use simple Roman Urdu that is easy to understand."""
+IMPORTANT: Respond in ROMAN URDU ONLY (Urdu using English alphabet). You may use light Markdown (bold, bullets) for structure, but every word must be Roman Urdu, not English."""
         else:
             user_message = f"""CONTEXT (Retrieved Medical Knowledge):
 {context}
@@ -156,19 +139,92 @@ IMPORTANT: You MUST respond in ROMAN URDU ONLY. Do NOT write in English. Write y
 USER QUESTION:
 {query}
 
-Please provide a clear and professional answer based on the context above. Write in a natural, conversational style without markdown formatting, headers, or source citations."""
+Answer using the context above. Format with clean Markdown (short bold headings, bullet points, bold key terms) so it is easy to read. Do not include inline source citations."""
 
-        # Build messages list
         messages = [{"role": "system", "content": system_message}]
-
-        # Add conversation history if provided
         if conversation_history:
             messages.extend(conversation_history[-6:])  # Last 3 exchanges
-
-        # Add current query
         messages.append({"role": "user", "content": user_message})
+        return messages
 
+    def generate_rag_response(self, query: str, context: str,
+                            conversation_history: Optional[List[Dict[str, str]]] = None,
+                            language: str = 'en') -> str:
+        """
+        Generate a (non-streamed) response using RAG context.
+        Kept for the legacy /api/chat endpoint and as a fallback.
+        """
+        messages = self._build_rag_messages(query, context, conversation_history, language)
         return self.generate_response(messages)
+
+    def stream_rag_response(self, query: str, context: str,
+                            conversation_history: Optional[List[Dict[str, str]]] = None,
+                            language: str = 'en'):
+        """
+        Stream a RAG response token-by-token. Yields text chunks as they arrive.
+
+        Args:
+            query: User query
+            context: Retrieved context from vector store
+            conversation_history: Previous conversation turns
+            language: Response language
+
+        Yields:
+            str: incremental text chunks
+        """
+        messages = self._build_rag_messages(query, context, conversation_history, language)
+        try:
+            stream = self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                top_p=1,
+                stream=True,
+            )
+            for chunk in stream:
+                delta = chunk.choices[0].delta.content
+                if delta:
+                    yield delta
+        except Exception as e:
+            logger.error(f"Error streaming response: {e}")
+            raise
+
+    def generate_followup_questions(self, query: str, answer: str,
+                                    language: str = 'en') -> List[str]:
+        """
+        Generate up to 3 short, relevant follow-up questions a user might ask next.
+        Returns a list of strings (empty list on any failure — never fatal).
+        """
+        try:
+            if language == 'ur':
+                instruction = (
+                    "User ne ye sawal poocha aur ye jawab mila. 3 chhote, relevant follow-up "
+                    "sawal Roman Urdu mein do jo user aage pooch sakta hai. Sirf sawal, har aik "
+                    "nai line par, bina number ke."
+                )
+            else:
+                instruction = (
+                    "Based on the question and answer below, suggest 3 short, natural follow-up "
+                    "questions the user might ask next. Output ONLY the questions, one per line, "
+                    "no numbering, no extra text. Keep each under 12 words."
+                )
+            prompt = f"{instruction}\n\nQUESTION: {query}\n\nANSWER: {answer[:1500]}"
+            raw = self.generate_response(
+                [{"role": "user", "content": prompt}],
+                temperature=0.5,
+                max_tokens=120,
+            )
+            # Parse lines, strip bullets/numbering, keep up to 3 non-empty.
+            questions = []
+            for line in raw.splitlines():
+                line = line.strip().lstrip("-*0123456789.) ").strip()
+                if line and line.endswith("?") and len(line) <= 120:
+                    questions.append(line)
+            return questions[:3]
+        except Exception as e:
+            logger.warning(f"Follow-up generation failed (non-fatal): {e}")
+            return []
 
     def test_connection(self) -> bool:
         """

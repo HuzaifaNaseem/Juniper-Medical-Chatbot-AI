@@ -122,6 +122,82 @@ class RAGEngine:
                 'error': str(e)
             }
 
+    def query_stream(self, user_query: str, conversation_id: Optional[str] = None,
+                     language: str = 'en'):
+        """
+        Streaming version of query(). Yields event dicts that the API layer
+        converts to Server-Sent Events:
+          {"type": "meta", "conversation_id", "safety_flag"}
+          {"type": "token", "text"}
+          {"type": "sources", "data": [...]}
+          {"type": "suggestions", "data": [...]}
+          {"type": "done"}
+          {"type": "error", "error"}
+        """
+        try:
+            logger.info(f"Streaming query (lang: {language}): '{user_query[:100]}...'")
+
+            # Step 0: Safety guardrail — intercept before any LLM/retrieval.
+            safety_result = safety.screen_message(user_query, language)
+            if safety_result is not None:
+                logger.warning(
+                    f"Stream intercepted by safety guardrail: {safety_result['safety_flag']}"
+                )
+                yield {"type": "meta", "conversation_id": conversation_id,
+                       "safety_flag": safety_result['safety_flag']}
+                yield {"type": "token", "text": safety_result['response']}
+                yield {"type": "sources", "data": []}
+                yield {"type": "done"}
+                return
+
+            yield {"type": "meta", "conversation_id": conversation_id, "safety_flag": None}
+
+            # Step 1: Retrieve
+            retrieved_docs = self.vector_store.search(user_query, top_k=self.top_k)
+
+            if not retrieved_docs:
+                fallback = self._generate_fallback_response(user_query, language)
+                yield {"type": "token", "text": fallback}
+                yield {"type": "sources", "data": []}
+                yield {"type": "done"}
+                return
+
+            # Step 2-4: Build context, history, then stream the answer.
+            context = self._build_context(retrieved_docs)
+            conversation_history = self._get_conversation_history(conversation_id)
+
+            full_answer_parts = []
+            for chunk in self.llm_service.stream_rag_response(
+                query=user_query,
+                context=context,
+                conversation_history=conversation_history,
+                language=language,
+            ):
+                full_answer_parts.append(chunk)
+                yield {"type": "token", "text": chunk}
+
+            full_answer = "".join(full_answer_parts).strip()
+
+            # Step 5: Persist conversation + emit sources.
+            if conversation_id:
+                self._update_conversation(conversation_id, user_query, full_answer)
+
+            yield {"type": "sources", "data": self._format_sources(retrieved_docs)}
+
+            # Step 6: Follow-up suggestions (best-effort, never fatal).
+            suggestions = self.llm_service.generate_followup_questions(
+                user_query, full_answer, language
+            )
+            if suggestions:
+                yield {"type": "suggestions", "data": suggestions}
+
+            yield {"type": "done"}
+            logger.info("Streaming query completed successfully")
+
+        except Exception as e:
+            logger.error(f"Error in streaming query: {e}")
+            yield {"type": "error", "error": str(e)}
+
     def _build_context(self, retrieved_docs: List[Dict[str, Any]]) -> str:
         """
         Build context string from retrieved documents

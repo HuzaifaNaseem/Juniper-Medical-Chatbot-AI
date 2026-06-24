@@ -802,6 +802,99 @@ a.source-badge:hover {
     opacity: 0.85;
 }
 
+/* Markdown-rendered answers */
+.markdown-body p {
+    margin: 0 0 0.6em 0;
+    line-height: 1.6;
+}
+.markdown-body p:last-child {
+    margin-bottom: 0;
+}
+.markdown-body strong {
+    font-weight: 700;
+    color: var(--text-primary, inherit);
+}
+.markdown-body ul,
+.markdown-body ol {
+    margin: 0.3em 0 0.7em 0;
+    padding-left: 1.3em;
+}
+.markdown-body li {
+    margin: 0.2em 0;
+    line-height: 1.55;
+}
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin: 0.8em 0 0.4em 0;
+}
+.markdown-body a {
+    color: var(--primary, #6366f1);
+    text-decoration: underline;
+}
+.markdown-body code {
+    background: var(--surface, rgba(127,127,127,0.12));
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+}
+.markdown-body blockquote {
+    border-left: 3px solid var(--primary, #6366f1);
+    margin: 0.5em 0;
+    padding: 0.2em 0 0.2em 0.9em;
+    opacity: 0.9;
+}
+
+/* Streaming cursor while the answer is being generated */
+.message-text.streaming::after {
+    content: '▋';
+    display: inline-block;
+    margin-left: 2px;
+    color: var(--primary, #6366f1);
+    animation: blink 1s step-start infinite;
+}
+@keyframes blink {
+    50% { opacity: 0; }
+}
+
+/* Follow-up suggestion chips */
+.message-suggestions {
+    margin-top: var(--space-md);
+}
+.suggestions-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+    opacity: 0.8;
+    margin-bottom: var(--space-xs);
+}
+.suggestion-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+}
+.suggestion-chip {
+    font-family: inherit;
+    font-size: 0.8rem;
+    padding: 6px var(--space-md);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    text-align: left;
+}
+.suggestion-chip:hover {
+    background: var(--primary, #6366f1);
+    border-color: var(--primary, #6366f1);
+    color: #fff;
+}
+
 /* Typing Indicator */
 .typing {
     display: flex;

@@ -118,7 +118,7 @@ class JuniperChat {
         this.charCount.textContent = count;
     }
 
-    addMessage(sender, text, sources = [], isError = false) {
+    addMessage(sender, text, sources = [], isError = false, suggestions = []) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${sender}`;
 
@@ -147,7 +147,13 @@ class JuniperChat {
 
         const textDiv = document.createElement('div');
         textDiv.className = 'message-text';
-        textDiv.textContent = text;
+        // Assistant answers are rendered as Markdown; user text stays plain.
+        if (sender === 'assistant' && !isError) {
+            textDiv.classList.add('markdown-body');
+            textDiv.innerHTML = this.renderMarkdown(text);
+        } else {
+            textDiv.textContent = text;
+        }
 
         if (isError) {
             textDiv.style.background = 'rgba(245, 101, 101, 0.1)';
@@ -159,51 +165,12 @@ class JuniperChat {
 
         // Add sources / citations
         if (sources && sources.length > 0) {
-            const sourcesWrap = document.createElement('div');
-            sourcesWrap.className = 'message-sources-wrap';
+            contentDiv.appendChild(this.buildSourcesBlock(sources));
+        }
 
-            const label = document.createElement('div');
-            label.className = 'sources-label';
-            label.textContent = 'Based on these knowledge base entries (verify with trusted sources):';
-            sourcesWrap.appendChild(label);
-
-            const sourcesDiv = document.createElement('div');
-            sourcesDiv.className = 'message-sources';
-
-            sources.forEach((source) => {
-                const title = source.title || 'Reference';
-                const relevance = (typeof source.relevance === 'number') ? source.relevance : null;
-                const refName = source.reference_name || '';
-                const refUrl = source.reference_url || '';
-
-                // Each citation is a clickable badge linking to an authoritative
-                // source for that topic area, opening in a new tab.
-                const badge = document.createElement(refUrl ? 'a' : 'span');
-                badge.className = 'source-badge';
-                if (refUrl) {
-                    badge.href = refUrl;
-                    badge.target = '_blank';
-                    badge.rel = 'noopener noreferrer';
-                    badge.title = refName ? `Learn more at ${refName}` : 'Learn more';
-                }
-
-                const relevanceHtml = relevance !== null
-                    ? `<span class="source-relevance">${relevance}%</span>`
-                    : '';
-
-                badge.innerHTML = `
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                    </svg>
-                    <span class="source-title">${this.escapeHtml(title)}</span>
-                    ${relevanceHtml}
-                `;
-                sourcesDiv.appendChild(badge);
-            });
-
-            sourcesWrap.appendChild(sourcesDiv);
-            contentDiv.appendChild(sourcesWrap);
+        // Add follow-up suggestion chips
+        if (suggestions && suggestions.length > 0) {
+            contentDiv.appendChild(this.buildSuggestions(suggestions));
         }
 
         messageDiv.appendChild(avatarDiv);
@@ -218,8 +185,101 @@ class JuniperChat {
             text: text,
             sources: sources,
             isError: isError,
+            suggestions: suggestions,
             timestamp: Date.now()
         });
+    }
+
+    renderMarkdown(text) {
+        // Render Markdown to sanitised HTML. Falls back to plain text if the
+        // libraries failed to load.
+        try {
+            if (window.marked && window.DOMPurify) {
+                const html = window.marked.parse(text || '', { breaks: true, gfm: true });
+                return window.DOMPurify.sanitize(html);
+            }
+        } catch (e) {
+            console.warn('Markdown render failed, using plain text:', e);
+        }
+        return this.escapeHtml(text);
+    }
+
+    buildSourcesBlock(sources) {
+        const sourcesWrap = document.createElement('div');
+        sourcesWrap.className = 'message-sources-wrap';
+
+        const label = document.createElement('div');
+        label.className = 'sources-label';
+        label.textContent = 'Based on these knowledge base entries (verify with trusted sources):';
+        sourcesWrap.appendChild(label);
+
+        const sourcesDiv = document.createElement('div');
+        sourcesDiv.className = 'message-sources';
+
+        sources.forEach((source) => {
+            const title = source.title || 'Reference';
+            const relevance = (typeof source.relevance === 'number') ? source.relevance : null;
+            const refName = source.reference_name || '';
+            const refUrl = source.reference_url || '';
+
+            // Each citation is a clickable badge linking to an authoritative
+            // source for that topic area, opening in a new tab.
+            const badge = document.createElement(refUrl ? 'a' : 'span');
+            badge.className = 'source-badge';
+            if (refUrl) {
+                badge.href = refUrl;
+                badge.target = '_blank';
+                badge.rel = 'noopener noreferrer';
+                badge.title = refName ? `Learn more at ${refName}` : 'Learn more';
+            }
+
+            const relevanceHtml = relevance !== null
+                ? `<span class="source-relevance">${relevance}%</span>`
+                : '';
+
+            badge.innerHTML = `
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                <span class="source-title">${this.escapeHtml(title)}</span>
+                ${relevanceHtml}
+            `;
+            sourcesDiv.appendChild(badge);
+        });
+
+        sourcesWrap.appendChild(sourcesDiv);
+        return sourcesWrap;
+    }
+
+    buildSuggestions(suggestions) {
+        const wrap = document.createElement('div');
+        wrap.className = 'message-suggestions';
+
+        const label = document.createElement('div');
+        label.className = 'suggestions-label';
+        label.textContent = this.selectedLanguage === 'ur' ? 'Aap ye bhi pooch sakte hain:' : 'You might also ask:';
+        wrap.appendChild(label);
+
+        const chips = document.createElement('div');
+        chips.className = 'suggestion-chips';
+        suggestions.forEach((q) => {
+            const chip = document.createElement('button');
+            chip.className = 'suggestion-chip';
+            chip.type = 'button';
+            chip.textContent = q;
+            chip.addEventListener('click', () => this.handleSuggestionClick(q));
+            chips.appendChild(chip);
+        });
+        wrap.appendChild(chips);
+        return wrap;
+    }
+
+    handleSuggestionClick(question) {
+        if (this.isProcessing) return;
+        this.messageInput.value = question;
+        this.updateCharCount();
+        this.handleSend();
     }
 
     showTyping() {
@@ -390,7 +450,7 @@ class JuniperChat {
 
         // Render messages
         conversation.messages.forEach(msg => {
-            this.addMessage(msg.sender, msg.text, msg.sources || [], msg.isError || false);
+            this.addMessage(msg.sender, msg.text, msg.sources || [], msg.isError || false, msg.suggestions || []);
         });
 
         this.renderHistory();
@@ -654,22 +714,172 @@ class JuniperChat {
         this.isProcessing = true;
         this.sendBtn.disabled = true;
 
+        // Streaming state
+        let shell = null;
+        let started = false;
+        let finalized = false;
+        let fullText = '';
+        let sources = [];
+        let suggestions = [];
+
+        const ensureShell = () => {
+            if (!started) {
+                this.removeTyping();
+                shell = this.createStreamingShell();
+                started = true;
+            }
+        };
+
+        const finalize = (isError = false) => {
+            if (finalized || !shell) return;
+            finalized = true;
+            shell.textDiv.classList.remove('streaming');
+            shell.textDiv.innerHTML = this.renderMarkdown(fullText);
+            if (sources.length) shell.contentDiv.appendChild(this.buildSourcesBlock(sources));
+            if (suggestions.length) shell.contentDiv.appendChild(this.buildSuggestions(suggestions));
+            this.currentMessages.push({
+                sender: 'assistant',
+                text: fullText,
+                sources: sources,
+                isError: isError,
+                suggestions: suggestions,
+                timestamp: Date.now()
+            });
+            this.scrollToBottom();
+        };
+
         try {
-            const response = await this.sendToAPI(message, this.selectedLanguage);
-            this.removeTyping();
-            this.addMessage('assistant', response.response, response.sources);
+            await this.streamToAPI(message, this.selectedLanguage, (event) => {
+                switch (event.type) {
+                    case 'meta':
+                        if (event.conversation_id) this.conversationId = event.conversation_id;
+                        break;
+                    case 'token':
+                        ensureShell();
+                        fullText += event.text;
+                        shell.textDiv.innerHTML = this.renderMarkdown(fullText);
+                        this.scrollToBottom();
+                        break;
+                    case 'sources':
+                        sources = event.data || [];
+                        break;
+                    case 'suggestions':
+                        suggestions = event.data || [];
+                        break;
+                    case 'done':
+                        ensureShell();
+                        finalize(false);
+                        break;
+                    case 'error':
+                        throw new Error(event.error || 'stream error');
+                }
+            });
+            // Stream ended without an explicit 'done' but we have content.
+            if (started && !finalized) finalize(false);
+            this.setStatus('ready', 'Ready');
         } catch (error) {
-            console.error('Error:', error);
-            this.removeTyping();
-            const errorMsg = this.selectedLanguage === 'ur'
-                ? 'Maafi, mujhe aik masla hua hai. Mehrbani karke dobara koshish karein.'
-                : 'Sorry, I encountered an error. Please try again.';
-            this.addMessage('assistant', errorMsg, [], true);
-            this.setStatus('error', 'Error');
+            console.error('Streaming error, falling back:', error);
+            if (started) {
+                // We already showed partial text — keep it.
+                finalize(false);
+                this.setStatus('ready', 'Ready');
+            } else {
+                // Nothing streamed: fall back to the non-streaming endpoint.
+                try {
+                    const response = await this.sendToAPI(message, this.selectedLanguage);
+                    this.removeTyping();
+                    this.addMessage('assistant', response.response, response.sources || []);
+                    this.setStatus('ready', 'Ready');
+                } catch (e2) {
+                    this.removeTyping();
+                    const errorMsg = this.selectedLanguage === 'ur'
+                        ? 'Maafi, mujhe aik masla hua hai. Mehrbani karke dobara koshish karein.'
+                        : 'Sorry, I encountered an error. Please try again.';
+                    this.addMessage('assistant', errorMsg, [], true);
+                    this.setStatus('error', 'Error');
+                }
+            }
         } finally {
             this.isProcessing = false;
             this.sendBtn.disabled = false;
-            this.setStatus('ready', 'Ready');
+        }
+    }
+
+    createStreamingShell() {
+        // Build an empty assistant message bubble to stream text into.
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message assistant';
+
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'message-avatar';
+        avatarDiv.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>';
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'message-header';
+        const senderSpan = document.createElement('span');
+        senderSpan.className = 'message-sender';
+        senderSpan.textContent = 'Juniper';
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'message-time';
+        timeSpan.textContent = this.getTime();
+        headerDiv.appendChild(senderSpan);
+        headerDiv.appendChild(timeSpan);
+
+        const textDiv = document.createElement('div');
+        textDiv.className = 'message-text markdown-body streaming';
+
+        contentDiv.appendChild(headerDiv);
+        contentDiv.appendChild(textDiv);
+        messageDiv.appendChild(avatarDiv);
+        messageDiv.appendChild(contentDiv);
+
+        this.chatArea.appendChild(messageDiv);
+        this.scrollToBottom();
+
+        return { messageDiv, contentDiv, textDiv };
+    }
+
+    async streamToAPI(message, language, onEvent) {
+        const response = await fetch('/api/chat/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message: message,
+                conversation_id: this.conversationId,
+                language: language
+            })
+        });
+
+        if (!response.ok || !response.body) {
+            let msg = 'Failed to start stream';
+            try { const err = await response.json(); msg = err.error || msg; } catch (e) {}
+            throw new Error(msg);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+
+            // SSE frames are separated by a blank line.
+            const frames = buffer.split('\n\n');
+            buffer = frames.pop();  // keep any incomplete trailing frame
+            for (const frame of frames) {
+                const dataLine = frame.split('\n').find(l => l.startsWith('data:'));
+                if (!dataLine) continue;
+                const jsonStr = dataLine.slice(5).trim();
+                if (!jsonStr) continue;
+                let event;
+                try { event = JSON.parse(jsonStr); } catch (e) { continue; }
+                onEvent(event);
+            }
         }
     }
 
