@@ -130,7 +130,13 @@ class JuniperChat {
             this.stagedImage = reader.result; // data URL
             const img = document.getElementById('imagePreviewImg');
             const preview = document.getElementById('imagePreview');
-            if (img) img.src = this.stagedImage;
+            if (img) {
+                // If the thumbnail can't render (e.g. unusual format), hide it
+                // gracefully — the photo is still staged and will be sent.
+                img.onerror = () => { img.style.display = 'none'; };
+                img.onload = () => { img.style.display = ''; };
+                img.src = this.stagedImage;
+            }
             if (preview) preview.hidden = false;
             this.messageInput.placeholder = this.selectedLanguage === 'ur'
                 ? 'Is tasveer ke bare mein poochein (optional)...'
@@ -160,8 +166,8 @@ class JuniperChat {
     }
 
     updateCharCount() {
-        const count = this.messageInput.value.length;
-        this.charCount.textContent = count;
+        if (!this.charCount) return;
+        this.charCount.textContent = this.messageInput.value.length;
     }
 
     addMessage(sender, text, sources = [], isError = false, suggestions = []) {
