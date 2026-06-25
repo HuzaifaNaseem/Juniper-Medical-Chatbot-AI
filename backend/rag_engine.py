@@ -4,6 +4,7 @@ Coordinates retrieval and generation for RAG chatbot
 """
 
 from typing import List, Dict, Optional, Any
+import re
 import logging
 from .vector_store import VectorStore
 from .llm_service import LLMService
@@ -13,6 +14,17 @@ from .references import reference_for
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Common English words that carry little retrieval signal — ignored when
+# computing the lexical re-rank boost.
+_STOPWORDS = {
+    'the', 'and', 'for', 'are', 'what', 'how', 'why', 'when', 'who', 'can',
+    'does', 'with', 'about', 'tell', 'have', 'has', 'this', 'that', 'from',
+    'your', 'you', 'they', 'them', 'there', 'here', 'into', 'out', 'get',
+    'should', 'would', 'could', 'may', 'might', 'will', 'his', 'her', 'its',
+    'their', 'some', 'any', 'all', 'more', 'most', 'such', 'than', 'then',
+    'between', 'symptoms', 'symptom', 'causes', 'cause', 'treatment', 'disease',
+}
+
 
 class RAGEngine:
     """
@@ -20,23 +32,75 @@ class RAGEngine:
     Coordinates document retrieval and response generation
     """
 
-    def __init__(self, vector_store: VectorStore, llm_service: LLMService, top_k: int = 5):
+    def __init__(self, vector_store: VectorStore, llm_service: LLMService, top_k: int = 5,
+                 retrieval_candidates: int = 10, min_relevance: float = 0.18,
+                 relevance_ratio: float = 0.5):
         """
         Initialize RAG engine
 
         Args:
             vector_store: Vector store instance
             llm_service: LLM service instance
-            top_k: Number of documents to retrieve
+            top_k: Final number of documents to keep for context/citations
+            retrieval_candidates: How many candidates to fetch before re-ranking
+            min_relevance: Absolute cosine-similarity floor to keep a doc
+            relevance_ratio: Keep docs within this fraction of the top score
         """
         self.vector_store = vector_store
         self.llm_service = llm_service
         self.top_k = top_k
+        self.retrieval_candidates = max(retrieval_candidates, top_k)
+        self.min_relevance = min_relevance
+        self.relevance_ratio = relevance_ratio
 
         # Conversation memory
         self.conversations = {}
 
         logger.info("RAG Engine initialized")
+
+    def _retrieve(self, user_query: str) -> List[Dict[str, Any]]:
+        """
+        Retrieve, re-rank, and filter documents for a query.
+
+        Fetches a wider candidate set from the vector store, then re-ranks with a
+        lexical boost (query terms appearing in a document's title are a strong
+        signal) and drops weakly-related documents so the context and citations
+        stay clean and on-topic.
+        """
+        candidates = self.vector_store.search(user_query, top_k=self.retrieval_candidates)
+        if not candidates:
+            return []
+
+        query_terms = {
+            t for t in re.findall(r'[a-z]{3,}', user_query.lower())
+            if t not in _STOPWORDS
+        }
+
+        for doc in candidates:
+            similarity = doc.get('similarity', 0) or 0
+            title = (doc.get('metadata', {}) or {}).get('title', '').lower()
+            content = (doc.get('document', '') or '').lower()
+
+            title_hits = sum(1 for t in query_terms if t in title)
+            content_hits = sum(1 for t in query_terms if t in content)
+            # Title matches are weighted much more heavily than body matches.
+            boost = 0.10 * title_hits + 0.015 * min(content_hits, 4)
+            doc['rerank_score'] = similarity + boost
+
+        candidates.sort(key=lambda d: d['rerank_score'], reverse=True)
+
+        # Relative + absolute relevance filtering.
+        top_sim = max((d.get('similarity', 0) or 0) for d in candidates)
+        cutoff = max(self.min_relevance, top_sim * self.relevance_ratio)
+        filtered = [d for d in candidates if (d.get('similarity', 0) or 0) >= cutoff]
+
+        # Always keep at least the single best match so we never go empty.
+        result = (filtered or candidates[:1])[:self.top_k]
+        logger.info(
+            f"Retrieval: {len(candidates)} candidates -> {len(result)} kept "
+            f"(cutoff={cutoff:.3f})"
+        )
+        return result
 
     def query(self, user_query: str, conversation_id: Optional[str] = None, language: str = 'en') -> Dict[str, Any]:
         """
@@ -67,8 +131,8 @@ class RAGEngine:
                     'safety_flag': safety_result['safety_flag'],
                 }
 
-            # Step 1: Retrieve relevant documents
-            retrieved_docs = self.vector_store.search(user_query, top_k=self.top_k)
+            # Step 1: Retrieve, re-rank, and filter relevant documents
+            retrieved_docs = self._retrieve(user_query)
 
             if not retrieved_docs:
                 logger.warning("No relevant documents found")
@@ -152,8 +216,8 @@ class RAGEngine:
 
             yield {"type": "meta", "conversation_id": conversation_id, "safety_flag": None}
 
-            # Step 1: Retrieve
-            retrieved_docs = self.vector_store.search(user_query, top_k=self.top_k)
+            # Step 1: Retrieve, re-rank, and filter
+            retrieved_docs = self._retrieve(user_query)
 
             if not retrieved_docs:
                 fallback = self._generate_fallback_response(user_query, language)

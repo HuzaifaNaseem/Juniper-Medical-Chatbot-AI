@@ -25,7 +25,13 @@ class Config:
     EMBEDDING_MODEL = 'sentence-transformers/all-MiniLM-L6-v2'
     CHUNK_SIZE = 500
     CHUNK_OVERLAP = 50
-    TOP_K_RESULTS = 5
+    TOP_K_RESULTS = 5            # final docs used for context/citations
+
+    # Retrieval re-ranking (Tier 2). Pull more candidates, re-rank with a
+    # lexical boost, then keep only the genuinely relevant ones.
+    RETRIEVAL_CANDIDATES = 10    # how many to fetch before re-ranking
+    MIN_RELEVANCE = 0.18         # absolute cosine-similarity floor
+    RELEVANCE_RATIO = 0.5        # keep docs within this fraction of the top score
 
     # LLM Configuration
     LLM_MODEL = "llama-3.3-70b-versatile"  # Groq's Llama 3.3 70B model (latest)

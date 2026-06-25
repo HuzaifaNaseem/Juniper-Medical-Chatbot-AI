@@ -99,7 +99,10 @@ def initialize_rag_engine():
         rag_engine = RAGEngine(
             vector_store=vector_store,
             llm_service=llm_service,
-            top_k=Config.TOP_K_RESULTS
+            top_k=Config.TOP_K_RESULTS,
+            retrieval_candidates=Config.RETRIEVAL_CANDIDATES,
+            min_relevance=Config.MIN_RELEVANCE,
+            relevance_ratio=Config.RELEVANCE_RATIO,
         )
 
         logger.info("✓ RAG engine initialized successfully")
