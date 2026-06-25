@@ -85,6 +85,7 @@ class JuniperChat {
 
         // Action buttons
         document.getElementById('newChat')?.addEventListener('click', () => this.newChat());
+        document.getElementById('exportChat')?.addEventListener('click', () => this.exportConversation());
         document.getElementById('clearHistory')?.addEventListener('click', () => this.clearHistory());
         document.getElementById('themeToggle')?.addEventListener('click', () => this.toggleTheme());
 
@@ -341,6 +342,66 @@ class JuniperChat {
             this.renderHistory();
             this.newChat();
         }
+    }
+
+    exportConversation() {
+        if (!this.currentMessages || this.currentMessages.length === 0) {
+            alert(this.selectedLanguage === 'ur'
+                ? 'Export karne ke liye koi conversation nahi hai.'
+                : 'There is no conversation to export yet.');
+            return;
+        }
+
+        const now = new Date();
+        const lines = [];
+        lines.push('Juniper - Medical Research Assistant');
+        lines.push('Conversation transcript');
+        lines.push('Exported: ' + now.toLocaleString());
+        lines.push('');
+        lines.push('NOTE: Juniper is an educational tool, not a substitute for professional');
+        lines.push('medical advice. Always consult a qualified healthcare professional.');
+        lines.push('='.repeat(70));
+        lines.push('');
+
+        this.currentMessages.forEach((msg) => {
+            const who = msg.sender === 'user' ? 'You' : 'Juniper';
+            lines.push(`### ${who}`);
+            lines.push(this.stripMarkdown(msg.text || ''));
+            if (msg.sources && msg.sources.length > 0) {
+                const srcs = msg.sources
+                    .map(s => `- ${s.title}${s.reference_name ? ' (' + s.reference_name + ')' : ''}`)
+                    .join('\n');
+                lines.push('');
+                lines.push('Sources:');
+                lines.push(srcs);
+            }
+            lines.push('');
+            lines.push('-'.repeat(70));
+            lines.push('');
+        });
+
+        const content = lines.join('\n');
+        const stamp = now.toISOString().slice(0, 19).replace(/[:T]/g, '-');
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `juniper-conversation-${stamp}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    stripMarkdown(text) {
+        // Plain-text version for the exported transcript.
+        return (text || '')
+            .replace(/\*\*(.*?)\*\*/g, '$1')   // bold
+            .replace(/\*(.*?)\*/g, '$1')       // italic
+            .replace(/^#{1,6}\s+/gm, '')        // headings
+            .replace(/^[\-\*]\s+/gm, '• ')      // bullets
+            .replace(/`([^`]+)`/g, '$1')        // inline code
+            .trim();
     }
 
     saveConversation() {

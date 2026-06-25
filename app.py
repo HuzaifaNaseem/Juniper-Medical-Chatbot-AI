@@ -15,6 +15,7 @@ from backend.vector_store import VectorStore
 from backend.llm_service import LLMService
 from backend.rag_engine import RAGEngine
 from backend.user_auth import UserAuth
+from backend.audit_log import AuditLog
 
 # Configure logging
 logging.basicConfig(
@@ -35,6 +36,17 @@ CORS(app, resources={r"/api/*": {"origins": config_class.CORS_ORIGINS}})
 rag_engine = None
 user_auth = None
 last_init_error = None
+
+# Audit logger — records all interactions and safety events for review.
+audit_log = AuditLog(db_path=os.path.join(os.path.dirname(Config.CHROMA_DB_PATH), 'audit.db'))
+
+
+def _client_ip():
+    """Best-effort client IP (behind nginx, prefer the forwarded header)."""
+    fwd = request.headers.get('X-Forwarded-For', '')
+    if fwd:
+        return fwd.split(',')[0].strip()
+    return request.remote_addr
 
 
 def initialize_rag_engine():
@@ -278,6 +290,17 @@ def chat():
                 f"conversation_id={conversation_id})"
             )
 
+        # Persist the interaction to the audit log (best-effort).
+        audit_log.log(
+            user_message=user_message,
+            response=result.get('response', ''),
+            conversation_id=conversation_id,
+            language=language,
+            safety_flag=result.get('safety_flag'),
+            source_count=len(result.get('sources', [])),
+            ip=_client_ip(),
+        )
+
         logger.info("Chat request processed successfully")
         return jsonify(response_data), 200
 
@@ -316,22 +339,44 @@ def chat_stream():
 
     logger.info(f"Streaming chat request (lang: {language}): '{user_message[:100]}...'")
 
+    client_ip = _client_ip()
+
     def event_stream():
+        # Accumulate enough to write one audit record once the stream ends.
+        answer_parts = []
+        safety_flag = None
+        source_count = 0
         try:
             for event in rag_engine.query_stream(
                 user_query=user_message,
                 conversation_id=conversation_id,
                 language=language,
             ):
-                if event.get('type') == 'meta' and event.get('safety_flag'):
+                etype = event.get('type')
+                if etype == 'meta' and event.get('safety_flag'):
+                    safety_flag = event['safety_flag']
                     logger.warning(
-                        f"SAFETY AUDIT: stream intercepted (flag={event['safety_flag']}, "
+                        f"SAFETY AUDIT: stream intercepted (flag={safety_flag}, "
                         f"conversation_id={conversation_id})"
                     )
+                elif etype == 'token':
+                    answer_parts.append(event.get('text', ''))
+                elif etype == 'sources':
+                    source_count = len(event.get('data', []))
                 yield f"data: {json.dumps(event)}\n\n"
         except Exception as e:
             logger.error(f"Error in stream generator: {e}")
             yield f"data: {json.dumps({'type': 'error', 'error': 'stream_failed'})}\n\n"
+        finally:
+            audit_log.log(
+                user_message=user_message,
+                response=''.join(answer_parts),
+                conversation_id=conversation_id,
+                language=language,
+                safety_flag=safety_flag,
+                source_count=source_count,
+                ip=client_ip,
+            )
 
     headers = {
         'Content-Type': 'text/event-stream',
