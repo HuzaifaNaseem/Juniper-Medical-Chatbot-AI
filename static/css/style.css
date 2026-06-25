@@ -952,6 +952,10 @@ a.source-badge:hover {
     border-radius: var(--radius-md);
     position: relative;
 }
+/* Respect the hidden attribute — keep the box gone until a photo is staged */
+.image-preview[hidden] {
+    display: none !important;
+}
 .image-preview img {
     width: 56px;
     height: 56px;
