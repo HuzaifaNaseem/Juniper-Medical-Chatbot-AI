@@ -321,7 +321,7 @@ class RAGEngine:
         seen_titles = set()
 
         for doc in retrieved_docs:
-            metadata = doc.get('metadata', {})
+            metadata = doc.get('metadata', {}) or {}
             title = metadata.get('title', 'Unknown')
 
             # De-duplicate by title so the same topic isn't cited twice.
@@ -330,7 +330,13 @@ class RAGEngine:
             seen_titles.add(title)
 
             category = metadata.get('category', 'general')
+
+            # Prefer the chunk's real provenance (the actual page this passage
+            # came from). Fall back to the category-level authoritative reference
+            # for older documents indexed without per-chunk source metadata.
             reference = reference_for(category)
+            reference_name = metadata.get('source_name') or reference['name']
+            reference_url = metadata.get('source_url') or reference['url']
 
             sources.append({
                 'title': title,
@@ -338,8 +344,8 @@ class RAGEngine:
                 'similarity': round(doc.get('similarity', 0), 3),
                 # Whole-number relevance percentage for clean display.
                 'relevance': max(0, min(100, round(doc.get('similarity', 0) * 100))),
-                'reference_name': reference['name'],
-                'reference_url': reference['url'],
+                'reference_name': reference_name,
+                'reference_url': reference_url,
             })
 
         return sources

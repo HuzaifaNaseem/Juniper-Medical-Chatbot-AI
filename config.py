@@ -23,7 +23,10 @@ class Config:
 
     # RAG Configuration
     EMBEDDING_MODEL = 'sentence-transformers/all-MiniLM-L6-v2'
-    CHUNK_SIZE = 500
+    # Chunking is measured in words. 300/50 splits longer multi-section topics
+    # (and large external summaries like MedlinePlus) into focused, overlapping
+    # passages while keeping short topics whole.
+    CHUNK_SIZE = 300
     CHUNK_OVERLAP = 50
     TOP_K_RESULTS = 5            # final docs used for context/citations
 

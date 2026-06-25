@@ -50,6 +50,12 @@ instance/
 # ChromaDB
 data/chroma_db/
 
+# Runtime SQLite databases (audit log, conversation memory, users)
+data/audit.db
+data/conversations.db
+data/*.db-wal
+data/*.db-shm
+
 # Logs
 *.log
 logs/
