@@ -7,6 +7,7 @@ import sqlite3
 import hashlib
 import secrets
 import logging
+import bcrypt
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 
@@ -77,8 +78,32 @@ class UserAuth:
         logger.info("Database tables initialized")
 
     def hash_password(self, password: str) -> str:
-        """Hash password using SHA-256"""
-        return hashlib.sha256(password.encode()).hexdigest()
+        """Hash a password with bcrypt (per-password salt, slow by design)."""
+        return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+    @staticmethod
+    def _is_legacy_hash(stored_hash: str) -> bool:
+        """True for the old unsalted SHA-256 hashes (64 hex chars, not a bcrypt string)."""
+        return bool(stored_hash) and not stored_hash.startswith('$2') and len(stored_hash) == 64
+
+    def verify_password(self, password: str, stored_hash: str) -> bool:
+        """
+        Verify a password against a stored hash.
+
+        Supports both bcrypt hashes and the legacy unsalted SHA-256 hashes so
+        existing accounts keep working; legacy hashes are upgraded to bcrypt on
+        the next successful login (see login_user).
+        """
+        if not stored_hash:
+            return False
+        try:
+            if self._is_legacy_hash(stored_hash):
+                legacy = hashlib.sha256(password.encode()).hexdigest()
+                return secrets.compare_digest(legacy, stored_hash)
+            return bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8'))
+        except Exception as e:
+            logger.error(f"Password verification error: {e}")
+            return False
 
     def generate_session_token(self) -> str:
         """Generate a secure session token"""
@@ -145,25 +170,32 @@ class UserAuth:
             Dictionary with session token and user info
         """
         try:
-            password_hash = self.hash_password(password)
-
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            # Check credentials
+            # Fetch the stored hash, then verify in Python (bcrypt can't be
+            # compared with a SQL equality check).
             cursor.execute('''
-                SELECT id, username, email
+                SELECT id, username, email, password_hash
                 FROM users
-                WHERE email = ? AND password_hash = ?
-            ''', (email.lower(), password_hash))
+                WHERE email = ?
+            ''', (email.lower(),))
 
             user = cursor.fetchone()
 
-            if not user:
+            if not user or not self.verify_password(password, user[3]):
                 conn.close()
                 return {'success': False, 'message': 'Invalid email or password'}
 
-            user_id, username, email = user
+            user_id, username, email, stored_hash = user
+
+            # Transparently upgrade legacy SHA-256 hashes to bcrypt on login.
+            if self._is_legacy_hash(stored_hash):
+                cursor.execute(
+                    'UPDATE users SET password_hash = ? WHERE id = ?',
+                    (self.hash_password(password), user_id),
+                )
+                logger.info(f"Upgraded legacy password hash to bcrypt for user {user_id}")
 
             # Create session
             session_token = self.generate_session_token()

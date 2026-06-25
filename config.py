@@ -55,6 +55,19 @@ class Config:
     # CORS Settings
     CORS_ORIGINS = os.getenv('CORS_ORIGINS', '*').split(',')
 
+    # Admin token guarding the /api/debug diagnostics endpoint. If unset, the
+    # endpoint is disabled entirely (returns 404) rather than leaking internals.
+    ADMIN_TOKEN = os.getenv('ADMIN_TOKEN', '')
+
+    # Rate limiting (flask-limiter). Per-IP caps to curb abuse of the LLM-backed
+    # endpoints. Storage defaults to in-process memory; set RATELIMIT_STORAGE_URI
+    # (e.g. redis://...) to share limits across workers.
+    RATELIMIT_STORAGE_URI = os.getenv('RATELIMIT_STORAGE_URI', 'memory://')
+    RATELIMIT_DEFAULT = os.getenv('RATELIMIT_DEFAULT', '200 per hour')
+    RATELIMIT_CHAT = os.getenv('RATELIMIT_CHAT', '20 per minute')
+    RATELIMIT_VISION = os.getenv('RATELIMIT_VISION', '10 per minute')
+    RATELIMIT_AUTH = os.getenv('RATELIMIT_AUTH', '10 per minute')
+
     @staticmethod
     def validate():
         """Validate critical configuration"""

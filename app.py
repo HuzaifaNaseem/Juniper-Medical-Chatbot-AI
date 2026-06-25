@@ -3,8 +3,10 @@ Juniper - Medical Research Assistant
 Main Flask Application
 """
 
-from flask import Flask, render_template, request, jsonify, Response, stream_with_context
+from flask import Flask, render_template, request, jsonify, Response, stream_with_context, abort
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from datetime import datetime
 import json
 import logging
@@ -31,6 +33,24 @@ app.config.from_object(config_class)
 
 # Enable CORS
 CORS(app, resources={r"/api/*": {"origins": config_class.CORS_ORIGINS}})
+
+
+def _rate_limit_key():
+    """Rate-limit per real client IP (behind nginx, honour X-Forwarded-For)."""
+    fwd = request.headers.get('X-Forwarded-For', '')
+    if fwd:
+        return fwd.split(',')[0].strip()
+    return get_remote_address()
+
+
+# Per-IP rate limiting to curb abuse of the LLM-backed endpoints.
+limiter = Limiter(
+    key_func=_rate_limit_key,
+    app=app,
+    default_limits=[config_class.RATELIMIT_DEFAULT],
+    storage_uri=config_class.RATELIMIT_STORAGE_URI,
+    strategy='fixed-window',
+)
 
 # Global RAG engine and auth instances
 rag_engine = None
@@ -135,8 +155,18 @@ def initialize_rag_engine():
 # ==========================================
 
 @app.route('/api/debug', methods=['GET'])
+@limiter.exempt
 def debug_info():
-    """Temporary debug endpoint to diagnose init issues"""
+    """
+    Diagnostics endpoint. Disabled unless ADMIN_TOKEN is configured AND the
+    caller supplies it (via ?token= or the X-Admin-Token header). This prevents
+    leaking config/key prefixes/stack traces to anonymous visitors.
+    """
+    admin_token = Config.ADMIN_TOKEN
+    supplied = request.headers.get('X-Admin-Token') or request.args.get('token', '')
+    if not admin_token or supplied != admin_token:
+        abort(404)
+
     import os
     groq_key = os.getenv('GROQ_API_KEY', '')
     chroma_path = Config.CHROMA_DB_PATH
@@ -228,6 +258,7 @@ def health_check():
 
 
 @app.route('/api/chat', methods=['POST'])
+@limiter.limit(lambda: Config.RATELIMIT_CHAT)
 def chat():
     """
     Main chat endpoint
@@ -312,6 +343,7 @@ def chat():
 
 
 @app.route('/api/chat/stream', methods=['POST'])
+@limiter.limit(lambda: Config.RATELIMIT_CHAT)
 def chat_stream():
     """
     Streaming chat endpoint using Server-Sent Events (SSE).
@@ -387,6 +419,7 @@ def chat_stream():
 
 
 @app.route('/api/vision', methods=['POST'])
+@limiter.limit(lambda: Config.RATELIMIT_VISION)
 def vision():
     """
     Analyze an uploaded medical image (medicine, rash, lab report, etc.).
@@ -519,6 +552,7 @@ def get_stats():
 # ==========================================
 
 @app.route('/api/auth/register', methods=['POST'])
+@limiter.limit(lambda: Config.RATELIMIT_AUTH)
 def register():
     """Register a new user"""
     try:
@@ -544,6 +578,7 @@ def register():
 
 
 @app.route('/api/auth/login', methods=['POST'])
+@limiter.limit(lambda: Config.RATELIMIT_AUTH)
 def login():
     """Login user"""
     try:

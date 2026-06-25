@@ -8,6 +8,7 @@ import re
 import logging
 from .vector_store import VectorStore
 from .llm_service import LLMService
+from .conversation_store import ConversationStore
 from . import safety
 from .references import reference_for
 
@@ -34,7 +35,7 @@ class RAGEngine:
 
     def __init__(self, vector_store: VectorStore, llm_service: LLMService, top_k: int = 5,
                  retrieval_candidates: int = 10, min_relevance: float = 0.18,
-                 relevance_ratio: float = 0.5):
+                 relevance_ratio: float = 0.5, conversation_store: ConversationStore = None):
         """
         Initialize RAG engine
 
@@ -45,6 +46,8 @@ class RAGEngine:
             retrieval_candidates: How many candidates to fetch before re-ranking
             min_relevance: Absolute cosine-similarity floor to keep a doc
             relevance_ratio: Keep docs within this fraction of the top score
+            conversation_store: Shared, multi-worker-safe history store. Created
+                with defaults if not supplied.
         """
         self.vector_store = vector_store
         self.llm_service = llm_service
@@ -53,8 +56,9 @@ class RAGEngine:
         self.min_relevance = min_relevance
         self.relevance_ratio = relevance_ratio
 
-        # Conversation memory
-        self.conversations = {}
+        # Conversation memory — persisted in SQLite so it is shared across all
+        # gunicorn workers and survives restarts.
+        self.conversations = conversation_store or ConversationStore()
 
         logger.info("RAG Engine initialized")
 
@@ -290,10 +294,7 @@ class RAGEngine:
         Returns:
             List of message dictionaries
         """
-        if not conversation_id or conversation_id not in self.conversations:
-            return []
-
-        return self.conversations[conversation_id]
+        return self.conversations.get_history(conversation_id)
 
     def _update_conversation(self, conversation_id: str, user_message: str, assistant_message: str):
         """
@@ -304,17 +305,7 @@ class RAGEngine:
             user_message: User's message
             assistant_message: Assistant's response
         """
-        if conversation_id not in self.conversations:
-            self.conversations[conversation_id] = []
-
-        self.conversations[conversation_id].extend([
-            {"role": "user", "content": user_message},
-            {"role": "assistant", "content": assistant_message}
-        ])
-
-        # Keep only last 10 exchanges (20 messages)
-        if len(self.conversations[conversation_id]) > 20:
-            self.conversations[conversation_id] = self.conversations[conversation_id][-20:]
+        self.conversations.append(conversation_id, user_message, assistant_message)
 
     def _format_sources(self, retrieved_docs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
@@ -398,9 +389,7 @@ How can I help you with another medical topic?"""
         Args:
             conversation_id: Conversation identifier
         """
-        if conversation_id in self.conversations:
-            del self.conversations[conversation_id]
-            logger.info(f"Cleared conversation: {conversation_id}")
+        self.conversations.clear(conversation_id)
 
     def get_stats(self) -> Dict[str, Any]:
         """
@@ -411,6 +400,6 @@ How can I help you with another medical topic?"""
         """
         return {
             'vector_store_stats': self.vector_store.get_stats(),
-            'active_conversations': len(self.conversations),
+            'active_conversations': self.conversations.active_count(),
             'top_k': self.top_k
         }
