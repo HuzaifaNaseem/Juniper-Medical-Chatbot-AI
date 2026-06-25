@@ -38,6 +38,12 @@ class Config:
     LLM_TEMPERATURE = 0.3
     LLM_MAX_TOKENS = 1024
 
+    # Vision model (multimodal) for photo analysis. Overridable via env in case
+    # Groq renames/deprecates the model. Confirm the current id at console.groq.com.
+    VISION_MODEL = os.getenv('VISION_MODEL', 'meta-llama/llama-4-scout-17b-16e-instruct')
+    VISION_MAX_TOKENS = 1024
+    MAX_IMAGE_BYTES = 4 * 1024 * 1024  # 4 MB cap on uploaded images
+
     # ChromaDB Configuration
     CHROMA_DB_PATH = './data/chroma_db'
     COLLECTION_NAME = 'medical_knowledge'

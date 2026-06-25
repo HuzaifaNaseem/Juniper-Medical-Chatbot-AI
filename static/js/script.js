@@ -94,6 +94,15 @@ class JuniperChat {
             this.voiceBtn.addEventListener('click', () => this.toggleVoiceRecording());
         }
 
+        // Image upload (vision)
+        this.stagedImage = null;
+        const attachBtn = document.getElementById('attachBtn');
+        const imageInput = document.getElementById('imageInput');
+        const removeImageBtn = document.getElementById('removeImageBtn');
+        attachBtn?.addEventListener('click', () => imageInput?.click());
+        imageInput?.addEventListener('change', (e) => this.handleImageSelected(e));
+        removeImageBtn?.addEventListener('click', () => this.clearStagedImage());
+
         // Language selector buttons
         document.querySelectorAll('.lang-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -101,6 +110,42 @@ class JuniperChat {
                 this.switchLanguage(lang);
             });
         });
+    }
+
+    handleImageSelected(e) {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            alert('Please select an image file.');
+            return;
+        }
+        if (file.size > 4 * 1024 * 1024) {
+            alert(this.selectedLanguage === 'ur'
+                ? 'Tasveer bohat bari hai (max 4 MB).'
+                : 'Image is too large (max 4 MB). Please choose a smaller photo.');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+            this.stagedImage = reader.result; // data URL
+            const img = document.getElementById('imagePreviewImg');
+            const preview = document.getElementById('imagePreview');
+            if (img) img.src = this.stagedImage;
+            if (preview) preview.hidden = false;
+            this.messageInput.placeholder = this.selectedLanguage === 'ur'
+                ? 'Is tasveer ke bare mein poochein (optional)...'
+                : 'Ask something about this photo (optional)...';
+        };
+        reader.readAsDataURL(file);
+        // Reset so selecting the same file again re-triggers change.
+        e.target.value = '';
+    }
+
+    clearStagedImage() {
+        this.stagedImage = null;
+        const preview = document.getElementById('imagePreview');
+        if (preview) preview.hidden = true;
+        this.updatePlaceholder();
     }
 
     setupAutoResize() {
@@ -747,7 +792,14 @@ class JuniperChat {
     async handleSend() {
         const message = this.messageInput.value.trim();
 
-        if (!message || this.isProcessing) return;
+        if (this.isProcessing) return;
+
+        // If an image is staged, run image analysis instead of text chat.
+        if (this.stagedImage) {
+            return this.handleSendImage(message);
+        }
+
+        if (!message) return;
 
         if (message.length > 2000) {
             alert('Message too long (max 2000 characters)');
@@ -864,6 +916,105 @@ class JuniperChat {
             this.isProcessing = false;
             this.sendBtn.disabled = false;
         }
+    }
+
+    async handleSendImage(message) {
+        const imageData = this.stagedImage;
+        if (!imageData) return;
+
+        if (this.welcomeScreen) this.welcomeScreen.classList.add('hidden');
+
+        // Show the user's image (and any question) as a user message.
+        this.addImageMessage(message, imageData);
+
+        // Reset input + staged image.
+        this.messageInput.value = '';
+        this.messageInput.style.height = 'auto';
+        this.updateCharCount();
+        this.clearStagedImage();
+
+        this.showTyping();
+        this.setStatus('processing', this.selectedLanguage === 'ur' ? 'Tasveer dekh raha hoon...' : 'Analyzing image...');
+        this.isProcessing = true;
+        this.sendBtn.disabled = true;
+
+        try {
+            const response = await fetch('/api/vision', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    image: imageData,
+                    message: message,
+                    conversation_id: this.conversationId,
+                    language: this.selectedLanguage
+                })
+            });
+            this.removeTyping();
+            if (!response.ok) {
+                let err = {};
+                try { err = await response.json(); } catch (e) {}
+                throw new Error(err.error || 'Image analysis failed');
+            }
+            const data = await response.json();
+            this.addMessage('assistant', data.response, []);
+            this.setStatus('ready', 'Ready');
+        } catch (error) {
+            console.error('Vision error:', error);
+            this.removeTyping();
+            const errorMsg = this.selectedLanguage === 'ur'
+                ? 'Maafi, tasveer ka jaiza lene mein masla hua. Dobara koshish karein.'
+                : (error.message && error.message.length < 120 ? error.message
+                    : 'Sorry, I could not analyze the image. Please try again.');
+            this.addMessage('assistant', errorMsg, [], true);
+            this.setStatus('error', 'Error');
+        } finally {
+            this.isProcessing = false;
+            this.sendBtn.disabled = false;
+        }
+    }
+
+    addImageMessage(text, imageDataUrl) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message user';
+
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'message-avatar';
+        avatarDiv.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'message-header';
+        headerDiv.innerHTML = `<span class="message-sender">You</span><span class="message-time">${this.getTime()}</span>`;
+        contentDiv.appendChild(headerDiv);
+
+        const img = document.createElement('img');
+        img.className = 'message-image';
+        img.src = imageDataUrl;
+        img.alt = 'Uploaded image';
+        contentDiv.appendChild(img);
+
+        if (text) {
+            const textDiv = document.createElement('div');
+            textDiv.className = 'message-text';
+            textDiv.textContent = text;
+            contentDiv.appendChild(textDiv);
+        }
+
+        messageDiv.appendChild(avatarDiv);
+        messageDiv.appendChild(contentDiv);
+        this.chatArea.appendChild(messageDiv);
+        this.scrollToBottom();
+
+        // Save to history (store a flag, not the heavy base64, to avoid bloating localStorage).
+        this.currentMessages.push({
+            sender: 'user',
+            text: text ? `[Photo] ${text}` : '[Photo uploaded]',
+            sources: [],
+            isError: false,
+            timestamp: Date.now()
+        });
     }
 
     createStreamingShell() {

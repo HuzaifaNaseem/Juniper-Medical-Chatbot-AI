@@ -386,6 +386,85 @@ def chat_stream():
     return Response(stream_with_context(event_stream()), headers=headers)
 
 
+@app.route('/api/vision', methods=['POST'])
+def vision():
+    """
+    Analyze an uploaded medical image (medicine, rash, lab report, etc.).
+    Expects JSON: {"image": "data:image/...;base64,...", "message": optional,
+                   "conversation_id": optional, "language": "en"|"ur"}.
+    """
+    if rag_engine is None:
+        logger.info("RAG engine not initialized, attempting lazy initialization...")
+        if not initialize_rag_engine():
+            return jsonify({'error': 'System not initialized. Please contact administrator.'}), 503
+
+    data = request.get_json(silent=True)
+    if not data or 'image' not in data:
+        return jsonify({'error': 'Missing required field: image'}), 400
+
+    image_data_url = data['image']
+    user_text = (data.get('message') or '').strip()
+    conversation_id = data.get('conversation_id')
+    language = data.get('language', 'en')
+
+    # Validate it's an image data URL.
+    if not isinstance(image_data_url, str) or not image_data_url.startswith('data:image/'):
+        return jsonify({'error': 'Invalid image format. Please upload a valid image.'}), 400
+
+    # Enforce a size cap (base64 ~= 4/3 of raw bytes) without fully decoding.
+    try:
+        b64_part = image_data_url.split(',', 1)[1]
+    except IndexError:
+        return jsonify({'error': 'Malformed image data.'}), 400
+    approx_bytes = (len(b64_part) * 3) // 4
+    if approx_bytes > Config.MAX_IMAGE_BYTES:
+        return jsonify({'error': 'Image too large. Please use an image under 4 MB.'}), 400
+
+    # Safety: screen any accompanying text first.
+    if user_text:
+        from backend import safety
+        safety_result = safety.screen_message(user_text, language)
+        if safety_result is not None:
+            audit_log.log(user_message=f"[image] {user_text}", response=safety_result['response'],
+                          conversation_id=conversation_id, language=language,
+                          safety_flag=safety_result['safety_flag'], ip=_client_ip())
+            return jsonify({'response': safety_result['response'],
+                            'safety_flag': safety_result['safety_flag']}), 200
+
+    logger.info(f"Vision request (lang: {language}), ~{approx_bytes} bytes")
+
+    try:
+        analysis = rag_engine.llm_service.analyze_image(
+            image_data_url=image_data_url,
+            user_text=user_text,
+            language=language,
+            vision_model=Config.VISION_MODEL,
+            max_tokens=Config.VISION_MAX_TOKENS,
+        )
+    except Exception as e:
+        logger.error(f"Vision analysis failed: {e}")
+        audit_log.log(user_message=f"[image] {user_text or '(no text)'}", response='[vision error]',
+                      conversation_id=conversation_id, language=language, ip=_client_ip())
+        return jsonify({'error': 'Could not analyze the image right now. Please try again.'}), 502
+
+    # Always append a clear disclaimer.
+    disclaimer = ("\n\n_Disclaimer: This is an AI interpretation for educational purposes only "
+                  "and may be inaccurate. Always confirm with a qualified healthcare professional._")
+    if language == 'ur':
+        disclaimer = ("\n\n_Note: Ye sirf taleemi maqsad ke liye AI ka andaza hai aur ghalat bhi ho "
+                      "sakta hai. Bar-e-meharbani kisi qualified doctor se tasdeeq zaroor karein._")
+    full_response = analysis + disclaimer
+
+    audit_log.log(user_message=f"[image] {user_text or '(no text)'}", response=full_response,
+                  conversation_id=conversation_id, language=language, ip=_client_ip())
+
+    return jsonify({
+        'response': full_response,
+        'conversation_id': conversation_id,
+        'timestamp': datetime.utcnow().isoformat(),
+    }), 200
+
+
 @app.route('/api/clear', methods=['POST'])
 def clear_conversation():
     """Clear conversation history"""

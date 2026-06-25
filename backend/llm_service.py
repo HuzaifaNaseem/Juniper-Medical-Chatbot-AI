@@ -231,6 +231,75 @@ Answer using the context above. Format with clean Markdown (short bold headings,
             logger.warning(f"Follow-up generation failed (non-fatal): {e}")
             return []
 
+    def analyze_image(self, image_data_url: str, user_text: str = '',
+                      language: str = 'en', vision_model: str = None,
+                      max_tokens: int = 1024) -> str:
+        """
+        Analyze a medical image (medicine, rash, lab report, etc.) using a
+        Groq vision model. Returns a markdown-formatted, safety-framed analysis.
+
+        Args:
+            image_data_url: data URL (data:image/...;base64,....)
+            user_text: optional question the user typed with the image
+            language: 'en' or 'ur'
+            vision_model: Groq multimodal model id (overrides default)
+            max_tokens: response length cap
+        """
+        model = vision_model or self.model
+
+        if language == 'ur':
+            system_message = (
+                "Aap Juniper hain, aik medical AI assistant. User ne aik tasveer bheji hai "
+                "(jaise dawai, skin ki halat, ya lab report). Tasveer ka ghaur se mushahida karein "
+                "aur ROMAN URDU mein aasan alfaaz mein bayan karein ke is mein kya nazar aa raha hai. "
+                "Light Markdown (bold, bullets) use kar sakte hain.\n\n"
+                "AHEM USOOL:\n"
+                "- Pakka diagnosis na dein. Kahein 'ye [X] jaisa lagta hai' aur wajah batayein.\n"
+                "- Agar tasveer dhundli ho ya saaf na ho to bata dein.\n"
+                "- Hamesha kisi qualified doctor se milne ka mashwara dein.\n"
+                "- Agar koi khatre ki baat ho to foran doctor/emergency ka kahein."
+            )
+            default_q = "Is tasveer mein kya nazar aa raha hai? Mujhe samjhayein."
+        else:
+            system_message = (
+                "You are Juniper, a medical AI assistant. The user has uploaded an image "
+                "(such as a medicine, a skin condition, or a lab report). Carefully observe the "
+                "image and explain, in clear plain language, what you can see. You may use light "
+                "Markdown (bold, bullet points) for structure.\n\n"
+                "CRITICAL RULES:\n"
+                "- Do NOT give a definitive diagnosis. Say what it 'appears to look like' and explain why.\n"
+                "- If the image is blurry or unclear, say so and ask for a clearer photo.\n"
+                "- For a medicine, identify it if legible and explain its general use; never give dosing advice.\n"
+                "- For a lab report, explain what the values mean and flag anything notably out of range.\n"
+                "- Always recommend confirming with a qualified healthcare professional.\n"
+                "- If you notice anything urgent or concerning, advise seeing a doctor / emergency care promptly."
+            )
+            default_q = "What can you see in this image? Please explain it to me."
+
+        text_part = user_text.strip() or default_q
+
+        messages = [
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": [
+                {"type": "text", "text": text_part},
+                {"type": "image_url", "image_url": {"url": image_data_url}},
+            ]},
+        ]
+
+        try:
+            response = self.client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=0.2,
+                max_tokens=max_tokens,
+                top_p=1,
+                stream=False,
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            logger.error(f"Error analyzing image with model '{model}': {e}")
+            raise
+
     def test_connection(self) -> bool:
         """
         Test connection to Groq API

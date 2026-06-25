@@ -895,6 +895,69 @@ a.source-badge:hover {
     color: #fff;
 }
 
+/* Image upload (vision) */
+.attach-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    transition: color 0.15s ease, background 0.15s ease;
+}
+.attach-btn:hover {
+    color: var(--primary, #6366f1);
+    background: var(--surface);
+}
+
+.image-preview {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+    margin-bottom: var(--space-sm);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    position: relative;
+}
+.image-preview img {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+}
+.image-preview-hint {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+#removeImageBtn {
+    margin-left: auto;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+}
+#removeImageBtn:hover {
+    color: #f56565;
+    background: rgba(245, 101, 101, 0.12);
+}
+
+.message-image {
+    max-width: 260px;
+    max-height: 260px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    margin-bottom: var(--space-sm);
+    display: block;
+}
+
 /* Typing Indicator */
 .typing {
     display: flex;
