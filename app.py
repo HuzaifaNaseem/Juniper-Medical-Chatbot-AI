@@ -135,6 +135,9 @@ def initialize_rag_engine():
             retrieval_candidates=Config.RETRIEVAL_CANDIDATES,
             min_relevance=Config.MIN_RELEVANCE,
             relevance_ratio=Config.RELEVANCE_RATIO,
+            citation_relevance_ratio=Config.CITATION_RELEVANCE_RATIO,
+            citation_min_relevance=Config.CITATION_MIN_RELEVANCE,
+            max_sources=Config.MAX_SOURCES,
         )
 
         logger.info("✓ RAG engine initialized successfully")

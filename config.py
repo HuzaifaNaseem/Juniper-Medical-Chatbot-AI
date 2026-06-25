@@ -36,6 +36,15 @@ class Config:
     MIN_RELEVANCE = 0.18         # absolute cosine-similarity floor
     RELEVANCE_RATIO = 0.5        # keep docs within this fraction of the top score
 
+    # Citation filtering. The docs fed to the LLM as context can be a little
+    # generous, but the sources we *show the user* must be clean — citing a
+    # weakly-related topic reads as untrustworthy. Sources are gated on the
+    # title-boosted re-rank score relative to the top hit (the correct topic
+    # almost always wins on re-rank), so trailing noise is dropped.
+    CITATION_RELEVANCE_RATIO = 0.80   # cite docs within this fraction of the top re-rank score
+    CITATION_MIN_RELEVANCE = 0.30     # absolute re-rank-score floor to be citable
+    MAX_SOURCES = 4                   # never show more than this many sources
+
     # LLM Configuration
     LLM_MODEL = "llama-3.3-70b-versatile"  # Groq's Llama 3.3 70B model (latest)
     LLM_TEMPERATURE = 0.3

@@ -35,7 +35,9 @@ class RAGEngine:
 
     def __init__(self, vector_store: VectorStore, llm_service: LLMService, top_k: int = 5,
                  retrieval_candidates: int = 10, min_relevance: float = 0.18,
-                 relevance_ratio: float = 0.5, conversation_store: ConversationStore = None):
+                 relevance_ratio: float = 0.5, conversation_store: ConversationStore = None,
+                 citation_relevance_ratio: float = 0.80, citation_min_relevance: float = 0.30,
+                 max_sources: int = 4):
         """
         Initialize RAG engine
 
@@ -55,6 +57,9 @@ class RAGEngine:
         self.retrieval_candidates = max(retrieval_candidates, top_k)
         self.min_relevance = min_relevance
         self.relevance_ratio = relevance_ratio
+        self.citation_relevance_ratio = citation_relevance_ratio
+        self.citation_min_relevance = citation_min_relevance
+        self.max_sources = max_sources
 
         # Conversation memory — persisted in SQLite so it is shared across all
         # gunicorn workers and survives restarts.
@@ -317,10 +322,27 @@ class RAGEngine:
         Returns:
             List of formatted source dictionaries
         """
+        if not retrieved_docs:
+            return []
+
+        # Gate citations on the title-boosted re-rank score relative to the top
+        # hit. Context fed to the LLM can be generous, but the *shown* sources
+        # must be clean: the correct topic almost always wins on re-rank, so
+        # trailing weakly-related docs are dropped here even though they were
+        # acceptable as background context.
+        def _score(d):
+            return d.get('rerank_score', d.get('similarity', 0)) or 0
+
+        top_score = max(_score(d) for d in retrieved_docs)
+        cutoff = max(self.citation_min_relevance, top_score * self.citation_relevance_ratio)
+        citable = [d for d in retrieved_docs if _score(d) >= cutoff]
+        # Always keep at least the single best match so we never show zero sources.
+        citable = citable or retrieved_docs[:1]
+
         sources = []
         seen_titles = set()
 
-        for doc in retrieved_docs:
+        for doc in citable:
             metadata = doc.get('metadata', {}) or {}
             title = metadata.get('title', 'Unknown')
 
@@ -328,6 +350,9 @@ class RAGEngine:
             if title in seen_titles:
                 continue
             seen_titles.add(title)
+
+            if len(sources) >= self.max_sources:
+                break
 
             category = metadata.get('category', 'general')
 

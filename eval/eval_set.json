@@ -1,0 +1,29 @@
+{
+  "description": "Fixed retrieval evaluation set for Juniper. Each case maps a realistic user query to the knowledge-base topic that should be retrieved/cited (expected_title) and the categories that are acceptable to cite alongside it (acceptable_categories). Queries deliberately mix title echoes with paraphrases (e.g. 'acid reflux' -> GERD, 'heart attack' -> CAD) to test semantic retrieval, not keyword matching.",
+  "cases": [
+    {"query": "what are the symptoms of high blood pressure", "expected_title": "Hypertension (High Blood Pressure)", "acceptable_categories": ["cardiovascular"]},
+    {"query": "how is type 2 diabetes managed", "expected_title": "Type 2 Diabetes", "acceptable_categories": ["endocrine"]},
+    {"query": "what are the warning signs of a heart attack", "expected_title": "Coronary Artery Disease (CAD)", "acceptable_categories": ["cardiovascular"]},
+    {"query": "best treatment for asthma attacks", "expected_title": "Asthma", "acceptable_categories": ["respiratory"]},
+    {"query": "what triggers migraines and how to relieve them", "expected_title": "Migraine", "acceptable_categories": ["neurological"]},
+    {"query": "i feel hopeless and have no energy, could it be depression", "expected_title": "Major Depressive Disorder", "acceptable_categories": ["mental_health"]},
+    {"query": "treatment options for breast cancer", "expected_title": "Breast Cancer", "acceptable_categories": ["oncology"]},
+    {"query": "what is rheumatoid arthritis and how does it affect joints", "expected_title": "Rheumatoid Arthritis", "acceptable_categories": ["autoimmune", "musculoskeletal"]},
+    {"query": "managing chronic kidney disease", "expected_title": "Chronic Kidney Disease", "acceptable_categories": ["renal"]},
+    {"query": "stages and treatment of COPD", "expected_title": "Chronic Obstructive Pulmonary Disease (COPD)", "acceptable_categories": ["respiratory"]},
+    {"query": "how do i treat a minor burn at home", "expected_title": "Burns First Aid", "acceptable_categories": ["first_aid"]},
+    {"query": "what should i do if someone is choking", "expected_title": "Choking First Aid", "acceptable_categories": ["first_aid"]},
+    {"query": "tired and cold all the time, underactive thyroid symptoms", "expected_title": "Hypothyroidism", "acceptable_categories": ["endocrine"]},
+    {"query": "what is glaucoma and can it cause blindness", "expected_title": "Glaucoma", "acceptable_categories": ["ophthalmology"]},
+    {"query": "how do antibiotics actually work against bacteria", "expected_title": "Antibiotics - Mechanism of Action", "acceptable_categories": ["pharmacology"]},
+    {"query": "feeling weak and pale, signs of low iron", "expected_title": "Iron-Deficiency Anemia", "acceptable_categories": ["hematology"]},
+    {"query": "frequent heartburn and acid reflux after meals", "expected_title": "Gastroesophageal Reflux Disease (GERD)", "acceptable_categories": ["gastrointestinal"]},
+    {"query": "tremors and stiffness, early parkinson's signs", "expected_title": "Parkinson's Disease", "acceptable_categories": ["neurological"]},
+    {"query": "irregular periods and ovarian cysts, is it pcos", "expected_title": "Polycystic Ovary Syndrome (PCOS)", "acceptable_categories": ["women_health", "endocrine"]},
+    {"query": "dangerous warning signs during pregnancy", "expected_title": "Pregnancy Warning Signs", "acceptable_categories": ["women_health"]},
+    {"query": "how is tuberculosis spread and treated", "expected_title": "Tuberculosis (TB)", "acceptable_categories": ["infectious"]},
+    {"query": "itchy dry skin rash that keeps coming back", "expected_title": "Eczema (Atopic Dermatitis)", "acceptable_categories": ["dermatology"]},
+    {"query": "memory loss and confusion in elderly, alzheimer's", "expected_title": "Alzheimer's Disease", "acceptable_categories": ["neurological"]},
+    {"query": "burning pain when urinating, could be a uti", "expected_title": "Urinary Tract Infection (UTI)", "acceptable_categories": ["infectious", "renal"]}
+  ]
+}
