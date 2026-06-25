@@ -242,57 +242,112 @@ def _medlineplus_category(group_names: List[str]) -> str:
     return 'general'
 
 
+def _materialize_xml(path_or_url: str) -> "tuple[str, list]":
+    """
+    Return a path to a plain-XML file for `path_or_url`, plus a list of temp
+    files to clean up. Transparently handles http(s) URLs and gzip/zip
+    compression (MedlinePlus distributes the compendium compressed), detected by
+    magic bytes rather than trusting the extension.
+    """
+    import tempfile
+    import shutil
+    import gzip
+    import zipfile
+
+    temps: list = []
+
+    # 1) Get a local copy of the raw bytes.
+    if path_or_url.startswith(('http://', 'https://')):
+        import urllib.request
+        logger.info(f"Downloading MedlinePlus compendium: {path_or_url}")
+        raw = tempfile.NamedTemporaryFile(delete=False, suffix='.bin')
+        with urllib.request.urlopen(path_or_url) as resp:  # nosec - trusted NIH host
+            shutil.copyfileobj(resp, raw)
+        raw.close()
+        temps.append(raw.name)
+        src = raw.name
+    else:
+        src = path_or_url
+
+    # 2) Sniff magic bytes to decide on decompression.
+    with open(src, 'rb') as f:
+        magic = f.read(4)
+
+    if magic[:2] == b'\x1f\x8b':  # gzip
+        out = tempfile.NamedTemporaryFile(delete=False, suffix='.xml')
+        with gzip.open(src, 'rb') as gz:
+            shutil.copyfileobj(gz, out)
+        out.close()
+        temps.append(out.name)
+        return out.name, temps
+
+    if magic[:4] == b'PK\x03\x04':  # zip
+        with zipfile.ZipFile(src) as zf:
+            member = next((n for n in zf.namelist() if n.lower().endswith('.xml')), None)
+            if not member:
+                raise ValueError("MedlinePlus zip contains no .xml file")
+            out = tempfile.NamedTemporaryFile(delete=False, suffix='.xml')
+            with zf.open(member) as m:
+                shutil.copyfileobj(m, out)
+            out.close()
+            temps.append(out.name)
+            return out.name, temps
+
+    # Plain XML.
+    return src, temps
+
+
 def records_from_medlineplus_xml(path_or_url: str, limit: Optional[int] = None,
                                  min_chars: int = 200) -> List[Dict[str, Any]]:
     """
-    Parse the public-domain MedlinePlus Health Topics compendium (XML) into
-    records with real per-topic provenance (title + canonical URL).
+    Parse the public-domain MedlinePlus Health Topics compendium into records
+    with real per-topic provenance (title + canonical URL).
 
-    Download the compendium (a single dated XML file) from:
-        https://medlineplus.gov/xml.html   (e.g. mplus_topics_YYYY-MM-DD.xml)
-    Pass either a local file path or an http(s) URL. English topics only.
-
-    Streamed with iterparse so a large file does not load fully into memory.
+    Accepts a local path or an http(s) URL, and plain-XML, .gz, or .zip
+    compression (MedlinePlus serves it compressed). Download from:
+        https://medlineplus.gov/xml.html   (e.g. mplus_topics_YYYY-MM-DD.zip)
+    English topics only. Streamed with iterparse so the file is not held fully
+    in memory.
     """
+    import os as _os
     import xml.etree.ElementTree as ET
 
-    # Open a stream from a URL or a local file (stdlib only, no new deps).
-    if path_or_url.startswith(('http://', 'https://')):
-        import urllib.request
-        logger.info(f"Fetching MedlinePlus compendium: {path_or_url}")
-        stream = urllib.request.urlopen(path_or_url)  # nosec - trusted NIH host
-    else:
-        stream = open(path_or_url, 'rb')
+    xml_path, temps = _materialize_xml(path_or_url)
 
     records: List[Dict[str, Any]] = []
     try:
-        for _event, elem in ET.iterparse(stream, events=('end',)):
-            if elem.tag != 'health-topic':
-                continue
-            try:
-                if (elem.get('language') or 'English') != 'English':
+        with open(xml_path, 'rb') as stream:
+            for _event, elem in ET.iterparse(stream, events=('end',)):
+                if elem.tag != 'health-topic':
                     continue
-                title = (elem.get('title') or '').strip()
-                url = (elem.get('url') or '').strip()
-                summary_el = elem.find('full-summary')
-                summary = strip_html(summary_el.text if summary_el is not None else '')
-                if not title or len(summary) < min_chars:
-                    continue
-                groups = [g.text or '' for g in elem.findall('group')]
-                records.append({
-                    'title': title,
-                    'category': _medlineplus_category(groups),
-                    'content': summary,
-                    'source_name': 'MedlinePlus (U.S. National Library of Medicine)',
-                    'source_url': url or 'https://medlineplus.gov/',
-                    'source_type': 'medlineplus',
-                })
-                if limit and len(records) >= limit:
-                    break
-            finally:
-                elem.clear()  # free the parsed element
+                try:
+                    if (elem.get('language') or 'English') != 'English':
+                        continue
+                    title = (elem.get('title') or '').strip()
+                    url = (elem.get('url') or '').strip()
+                    summary_el = elem.find('full-summary')
+                    summary = strip_html(summary_el.text if summary_el is not None else '')
+                    if not title or len(summary) < min_chars:
+                        continue
+                    groups = [g.text or '' for g in elem.findall('group')]
+                    records.append({
+                        'title': title,
+                        'category': _medlineplus_category(groups),
+                        'content': summary,
+                        'source_name': 'MedlinePlus (U.S. National Library of Medicine)',
+                        'source_url': url or 'https://medlineplus.gov/',
+                        'source_type': 'medlineplus',
+                    })
+                    if limit and len(records) >= limit:
+                        break
+                finally:
+                    elem.clear()  # free the parsed element
     finally:
-        stream.close()
+        for t in temps:
+            try:
+                _os.unlink(t)
+            except OSError:
+                pass
 
     logger.info(f"records_from_medlineplus_xml: {len(records)} topics parsed")
     return records
