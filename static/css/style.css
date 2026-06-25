@@ -143,6 +143,7 @@ body {
 .app-layout {
     display: flex;
     height: 100vh;
+    height: 100dvh; /* dynamic viewport height — accounts for mobile browser bars */
     width: 100%;
 }
 
@@ -492,6 +493,8 @@ body {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     box-shadow: var(--shadow-sm);
+    flex-shrink: 0;
+    padding-top: max(var(--space-lg), env(safe-area-inset-top));
 }
 
 .menu-btn {
@@ -1038,6 +1041,9 @@ a.source-badge:hover {
     background: var(--surface);
     border-top: 1px solid var(--border);
     box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04);
+    flex-shrink: 0;
+    /* Clear the phone's home indicator / bottom browser bar */
+    padding-bottom: max(var(--space-lg), env(safe-area-inset-bottom));
 }
 
 .input-container {
@@ -1261,11 +1267,58 @@ a.source-badge:hover {
     }
 
     .input-box {
-        padding: var(--space-md) var(--space-lg);
+        padding: var(--space-md) var(--space-md);
+        padding-bottom: max(var(--space-md), env(safe-area-inset-bottom));
+    }
+
+    /* Compact the input controls so attach + language + mic + send all fit */
+    .input-container {
+        gap: 4px;
+        padding: 6px;
+    }
+
+    #messageInput {
+        font-size: 16px; /* prevents iOS zoom-on-focus */
+        min-width: 0;
+    }
+
+    .attach-btn,
+    .voice-btn,
+    #sendBtn {
+        padding: 8px;
+        flex-shrink: 0;
+    }
+
+    .lang-btn {
+        padding: 4px 8px;
+        font-size: 0.75rem;
+    }
+
+    .message {
+        gap: var(--space-sm);
+    }
+
+    .message.user .message-text {
+        max-width: 88%;
+    }
+
+    .message-image {
+        max-width: 200px;
     }
 
     .caps {
         gap: var(--space-md);
+    }
+}
+
+/* Very small phones */
+@media (max-width: 380px) {
+    .chat-area {
+        padding: var(--space-md);
+    }
+    .message-avatar {
+        width: 30px;
+        height: 30px;
     }
 }
 
