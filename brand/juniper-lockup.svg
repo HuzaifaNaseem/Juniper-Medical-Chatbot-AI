@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 128" width="420" height="128" role="img" aria-label="juniper">
+  <!-- mark -->
+  <g>
+    <rect x="6" y="6" width="116" height="116" rx="30" fill="#13243D"/>
+    <circle cx="70" cy="31" r="9" fill="#22C39B"/>
+    <path d="M70 50 V83 a18 18 0 0 1 -18 18" fill="none" stroke="#FFFFFF" stroke-width="13" stroke-linecap="round"/>
+  </g>
+  <!-- wordmark: set in Poppins SemiBold. Convert to outlines before shipping if Poppins isn't embedded. -->
+  <text x="150" y="76" font-family="Poppins, 'Century Gothic', 'Segoe UI', sans-serif" font-size="58" font-weight="600" letter-spacing="-1.2" fill="#13243D">juniper</text>
+  <text x="152" y="98" font-family="Poppins, 'Segoe UI', sans-serif" font-size="12" font-weight="600" letter-spacing="3" fill="#17A784">AI MEDICAL ASSISTANT</text>
+</svg>

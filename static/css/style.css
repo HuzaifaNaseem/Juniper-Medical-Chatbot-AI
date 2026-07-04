@@ -4,14 +4,16 @@
    ============================================ */
 
 :root {
-    /* Colors — Juniper Evergreen + Gold */
-    --primary: #10b981;
-    --primary-dark: #059669;
-    --primary-light: #34d399;
-    --accent: #f4b740;          /* warm gold */
+    /* Colors — Juniper brand (matches logo) */
+    --navy: #13243D;            /* deep juniper navy — brand ink */
+    --navy-soft: #1C3556;
+    --primary: #17A784;         /* juniper teal (logo) */
+    --primary-dark: #0E7A63;
+    --primary-light: #22C39B;   /* bright teal (logo berry) */
+    --accent: #f4b740;          /* warm gold — secondary accent */
     --accent-dark: #d99a28;
-    --gradient-start: #0fa968;  /* emerald */
-    --gradient-end: #14b8a6;    /* teal */
+    --gradient-start: #17A784;  /* teal */
+    --gradient-end: #22C39B;    /* bright teal */
 
     /* Neutrals - Light (subtle green tint) */
     --bg: #f3f8f5;
@@ -123,7 +125,7 @@ body {
 .orb-3 {
     width: 350px;
     height: 350px;
-    background: linear-gradient(315deg, #14b8a6, #0fa968);
+    background: linear-gradient(315deg, var(--primary-light), var(--primary-dark));
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
